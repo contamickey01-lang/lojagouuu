@@ -34,45 +34,61 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
 
         if (supabase) {
             try {
+                console.log("[Products] Tentando carregar do Supabase...");
+
                 // Carregar categorias
-                const { data: catData } = await supabase
+                const { data: catData, error: catError } = await supabase
                     .from("categories")
                     .select("*");
 
-                if (catData && catData.length > 0) {
+                if (catError) {
+                    console.error("[Products] Erro ao carregar categorias:", catError);
+                } else if (catData && catData.length > 0) {
                     setCategories(catData as Category[]);
+                    console.log("[Products] Categorias carregadas:", catData.length);
                 }
 
                 // Carregar produtos com categoria
                 const { data: prodData, error } = await supabase
                     .from("products")
                     .select(`
-            *,
-            categories (
-              id,
-              name,
-              slug
-            )
-          `)
+                        *,
+                        categories (
+                            id,
+                            name,
+                            slug
+                        )
+                    `)
                     .order("sales_count", { ascending: false });
 
-                if (error) throw error;
+                if (error) {
+                    console.error("[Products] Erro ao carregar produtos:", error);
+                    throw error;
+                }
+
+                // SEMPRE usar Supabase se conectou, mesmo sem produtos
+                setIsUsingSupabase(true);
 
                 if (prodData && prodData.length > 0) {
                     const convertedProducts = prodData.map((p: DBProduct & { categories?: DBCategory }) =>
                         dbProductToProduct(p, p.categories || undefined)
                     );
                     setProducts(convertedProducts);
-                    setIsUsingSupabase(true);
-                    setIsLoading(false);
-                    return;
+                    console.log("[Products] Produtos carregados do Supabase:", convertedProducts.length);
+                } else {
+                    console.log("[Products] Nenhum produto no Supabase ainda. Banco vazio.");
+                    setProducts([]);
                 }
+
+                setIsLoading(false);
+                return;
             } catch (error) {
-                console.warn("Supabase não disponível, usando dados locais:", error);
+                console.warn("[Products] Supabase não disponível, usando dados locais:", error);
             }
         }
 
         // Fallback: usar localStorage ou dados mock
+        console.log("[Products] Usando modo local (localStorage)");
         const savedProducts = localStorage.getItem("gourp-products");
         if (savedProducts) {
             try {
@@ -126,7 +142,11 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
                 .select()
                 .single();
 
-            if (error) throw error;
+            if (error) {
+                console.error("[Products] Erro ao adicionar produto:", error);
+                throw error;
+            }
+            console.log("[Products] Produto adicionado no Supabase");
             await refreshProducts();
         } else {
             const newId = Math.max(...products.map((p) => p.id), 0) + 1;
@@ -160,7 +180,11 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
                 .update(dbUpdates)
                 .eq("id", id);
 
-            if (error) throw error;
+            if (error) {
+                console.error("[Products] Erro ao atualizar produto:", error);
+                throw error;
+            }
+            console.log("[Products] Produto atualizado no Supabase");
             await refreshProducts();
         } else {
             setProducts((prev) =>
@@ -178,7 +202,11 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
                 .delete()
                 .eq("id", id);
 
-            if (error) throw error;
+            if (error) {
+                console.error("[Products] Erro ao deletar produto:", error);
+                throw error;
+            }
+            console.log("[Products] Produto deletado do Supabase");
             await refreshProducts();
         } else {
             setProducts((prev) => prev.filter((p) => p.id !== id));
