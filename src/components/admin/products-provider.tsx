@@ -14,6 +14,8 @@ interface ProductsContextType {
     updateProduct: (id: number, updates: Partial<Product>) => Promise<void>;
     deleteProduct: (id: number) => Promise<void>;
     updateStock: (id: number, stock: number) => Promise<void>;
+    searchQuery: string;
+    setSearchQuery: (query: string) => void;
     refreshProducts: () => Promise<void>;
 }
 
@@ -24,6 +26,7 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
     const [categories, setCategories] = useState<Category[]>(mockCategories);
     const [isLoading, setIsLoading] = useState(true);
     const [isUsingSupabase, setIsUsingSupabase] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
 
     // Carregar produtos
     const loadProducts = async () => {
@@ -231,6 +234,8 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
                 deleteProduct,
                 updateStock,
                 refreshProducts,
+                searchQuery,
+                setSearchQuery,
             }}
         >
             {children}

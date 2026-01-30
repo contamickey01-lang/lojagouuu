@@ -8,7 +8,9 @@ import { useAdmin } from "@/components/admin/admin-provider";
 import { useAuth } from "@/components/auth/auth-provider";
 import { AuthModal } from "@/components/auth/auth-modal";
 import { UserMenu } from "@/components/auth/user-menu";
+import { useProducts } from "@/components/admin/products-provider";
 import { cn } from "@/lib/utils";
+import { useRouter, usePathname } from "next/navigation";
 
 // Emails autorizados como admin
 const ADMIN_EMAILS = ["admin@gourp.com", "gou@gourp.com"];
@@ -17,8 +19,12 @@ export function Header() {
     const { totalItems } = useCart();
     const { isAuthenticated: isAdminAuthenticated } = useAdmin();
     const { user, isLoading } = useAuth();
+    const { searchQuery, setSearchQuery } = useProducts();
+    const router = useRouter();
+    const pathname = usePathname();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
 
     const isAdmin = user && ADMIN_EMAILS.includes(user.email || "");
 
@@ -56,12 +62,45 @@ export function Header() {
                     {/* Right Actions */}
                     <div className="flex items-center gap-2">
                         {/* Search */}
-                        <button
-                            className="hidden sm:flex items-center justify-center w-10 h-10 rounded-lg hover:bg-secondary transition-colors"
-                            aria-label="Buscar"
-                        >
-                            <Search className="w-5 h-5 text-muted-foreground" />
-                        </button>
+                        <div className="relative flex items-center">
+                            {isSearchOpen ? (
+                                <div className="absolute right-0 flex items-center animate-in slide-in-from-right-2 duration-200">
+                                    <input
+                                        type="text"
+                                        placeholder="Buscar..."
+                                        autoFocus
+                                        value={searchQuery}
+                                        onChange={(e) => {
+                                            setSearchQuery(e.target.value);
+                                            if (pathname !== "/loja" && e.target.value.length > 0) {
+                                                router.push("/loja");
+                                            }
+                                        }}
+                                        onBlur={() => {
+                                            if (searchQuery === "") setIsSearchOpen(false);
+                                        }}
+                                        className="w-40 sm:w-64 px-4 py-2 rounded-xl bg-secondary border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary pr-10"
+                                    />
+                                    <button
+                                        onClick={() => {
+                                            setSearchQuery("");
+                                            setIsSearchOpen(false);
+                                        }}
+                                        className="absolute right-3 text-muted-foreground hover:text-foreground"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={() => setIsSearchOpen(true)}
+                                    className="hidden sm:flex items-center justify-center w-10 h-10 rounded-lg hover:bg-secondary transition-colors"
+                                    aria-label="Buscar"
+                                >
+                                    <Search className="w-5 h-5 text-muted-foreground" />
+                                </button>
+                            )}
+                        </div>
 
                         {/* Cart */}
                         <Link
@@ -130,20 +169,39 @@ export function Header() {
                 <div
                     className={cn(
                         "md:hidden overflow-hidden transition-all duration-300 border-t border-border/40",
-                        isMenuOpen ? "max-h-64" : "max-h-0"
+                        isMenuOpen ? "max-h-[400px]" : "max-h-0"
                     )}
                 >
-                    <nav className="flex flex-col p-4 gap-2">
-                        {navLinks.map((link) => (
-                            <Link
-                                key={link.href}
-                                href={link.href}
-                                className="py-2 px-4 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-colors"
-                                onClick={() => setIsMenuOpen(false)}
-                            >
-                                {link.label}
-                            </Link>
-                        ))}
+                    <nav className="flex flex-col p-4 gap-4">
+                        {/* Mobile Search */}
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <input
+                                type="text"
+                                placeholder="Buscar produtos..."
+                                value={searchQuery}
+                                onChange={(e) => {
+                                    setSearchQuery(e.target.value);
+                                    if (pathname !== "/loja" && e.target.value.length > 0) {
+                                        router.push("/loja");
+                                    }
+                                }}
+                                className="w-full pl-10 pr-4 py-2 rounded-xl bg-secondary border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                            />
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                            {navLinks.map((link) => (
+                                <Link
+                                    key={link.href}
+                                    href={link.href}
+                                    className="py-2 px-4 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-colors"
+                                    onClick={() => setIsMenuOpen(false)}
+                                >
+                                    {link.label}
+                                </Link>
+                            ))}
+                        </div>
                     </nav>
                 </div>
             </header>
