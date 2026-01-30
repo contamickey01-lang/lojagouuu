@@ -4,27 +4,24 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Lock, Eye, EyeOff, AlertCircle, Mail, Database } from "lucide-react";
 import { useAdmin } from "@/components/admin/admin-provider";
-import { supabase } from "@/lib/supabase";
 
 export default function AdminLoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState("");
-    const [isLoading, setIsLoading] = useState(false);
-    const { login, isAuthenticated, isLoading: authLoading } = useAdmin();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const { login, isAuthenticated, isLoading, isUsingSupabase } = useAdmin();
     const router = useRouter();
 
-    const isUsingSupabase = !!supabase;
-
     // Se já está autenticado, redirecionar para o dashboard
-    if (isAuthenticated && !authLoading) {
+    if (isAuthenticated && !isLoading) {
         router.push("/admin/dashboard");
         return null;
     }
 
     // Mostrar loading enquanto verifica sessão
-    if (authLoading) {
+    if (isLoading) {
         return (
             <div className="min-h-[80vh] flex items-center justify-center">
                 <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
@@ -35,7 +32,7 @@ export default function AdminLoginPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
-        setIsLoading(true);
+        setIsSubmitting(true);
 
         const result = await login(email || "admin", password);
 
@@ -43,7 +40,7 @@ export default function AdminLoginPage() {
             router.push("/admin/dashboard");
         } else {
             setError(result.error || "Erro ao fazer login.");
-            setIsLoading(false);
+            setIsSubmitting(false);
         }
     };
 
@@ -138,10 +135,10 @@ export default function AdminLoginPage() {
 
                     <button
                         type="submit"
-                        disabled={isLoading}
+                        disabled={isSubmitting}
                         className="w-full py-3 rounded-xl bg-primary hover:bg-primary-hover text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        {isLoading ? "Entrando..." : "Entrar"}
+                        {isSubmitting ? "Entrando..." : "Entrar"}
                     </button>
                 </form>
 

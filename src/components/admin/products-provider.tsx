@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { Product, Category } from "@/types";
 import { products as mockProducts, categories as mockCategories } from "@/lib/mock-data";
-import { supabase, dbProductToProduct, DBProduct, DBCategory } from "@/lib/supabase";
+import { getSupabase, dbProductToProduct, DBProduct, DBCategory } from "@/lib/supabase";
 
 interface ProductsContextType {
     products: Product[];
@@ -29,7 +29,9 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
     const loadProducts = async () => {
         setIsLoading(true);
 
-        // Tentar carregar do Supabase (só se o cliente existir)
+        // Tentar carregar do Supabase (obtém cliente sob demanda)
+        const supabase = getSupabase();
+
         if (supabase) {
             try {
                 // Carregar categorias
@@ -100,6 +102,8 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
     };
 
     const addProduct = async (product: Omit<Product, "id">) => {
+        const supabase = getSupabase();
+
         if (isUsingSupabase && supabase) {
             const { error } = await supabase
                 .from("products")
@@ -131,6 +135,8 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
     };
 
     const updateProduct = async (id: number, updates: Partial<Product>) => {
+        const supabase = getSupabase();
+
         if (isUsingSupabase && supabase) {
             const dbUpdates: Record<string, unknown> = {};
             if (updates.name !== undefined) dbUpdates.name = updates.name;
@@ -164,6 +170,8 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
     };
 
     const deleteProduct = async (id: number) => {
+        const supabase = getSupabase();
+
         if (isUsingSupabase && supabase) {
             const { error } = await supabase
                 .from("products")

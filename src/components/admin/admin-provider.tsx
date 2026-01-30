@@ -1,12 +1,13 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import { User } from "@supabase/supabase-js";
 
 interface AdminContextType {
     isAuthenticated: boolean;
     isLoading: boolean;
+    isUsingSupabase: boolean;
     user: User | null;
     login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
     logout: () => Promise<void>;
@@ -23,13 +24,18 @@ const FALLBACK_PASSWORD = "gourp2024";
 export function AdminProvider({ children }: { children: ReactNode }) {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [isUsingSupabase, setIsUsingSupabase] = useState(false);
     const [user, setUser] = useState<User | null>(null);
 
     // Verificar sessão ao carregar
     useEffect(() => {
         const checkSession = async () => {
+            const supabase = getSupabase();
+
             // Se Supabase está configurado
             if (supabase) {
+                setIsUsingSupabase(true);
+
                 const { data: { session } } = await supabase.auth.getSession();
                 if (session?.user && ADMIN_EMAILS.includes(session.user.email || "")) {
                     setUser(session.user);
@@ -69,6 +75,8 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+        const supabase = getSupabase();
+
         // Se Supabase está configurado
         if (supabase) {
             const { data, error } = await supabase.auth.signInWithPassword({
@@ -103,6 +111,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     };
 
     const logout = async () => {
+        const supabase = getSupabase();
         if (supabase) {
             await supabase.auth.signOut();
         }
@@ -112,7 +121,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     };
 
     return (
-        <AdminContext.Provider value={{ isAuthenticated, isLoading, user, login, logout }}>
+        <AdminContext.Provider value={{ isAuthenticated, isLoading, isUsingSupabase, user, login, logout }}>
             {children}
         </AdminContext.Provider>
     );

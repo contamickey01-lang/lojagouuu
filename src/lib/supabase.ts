@@ -1,16 +1,26 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-// Cliente Supabase - só cria se as variáveis estiverem configuradas
-let supabase: SupabaseClient | null = null;
+// Cliente Supabase - criado sob demanda
+let supabaseInstance: SupabaseClient | null = null;
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+export function getSupabase(): SupabaseClient | null {
+    // Se já foi criado, retorna
+    if (supabaseInstance) return supabaseInstance;
 
-if (supabaseUrl && supabaseAnonKey) {
-    supabase = createClient(supabaseUrl, supabaseAnonKey);
+    // Verifica se as variáveis estão disponíveis
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (supabaseUrl && supabaseAnonKey) {
+        supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
+        return supabaseInstance;
+    }
+
+    return null;
 }
 
-export { supabase };
+// Export para compatibilidade (lazy)
+export const supabase = typeof window !== "undefined" ? getSupabase() : null;
 
 // Tipos do banco de dados
 export interface DBProduct {
