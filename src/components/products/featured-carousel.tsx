@@ -55,7 +55,8 @@ export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
                         fill
                         className="object-cover"
                         priority
-                        quality={95}
+                        unoptimized
+                        sizes="100vw"
                     />
                 )}
                 {/* Gradient Overlay */}
