@@ -13,16 +13,16 @@ import {
     X,
     Save,
     AlertCircle,
+    Database,
 } from "lucide-react";
 import { useAdmin } from "@/components/admin/admin-provider";
 import { useProducts } from "@/components/admin/products-provider";
 import { Product, Category } from "@/types";
 import { formatCurrency, slugify } from "@/lib/utils";
-import { categories } from "@/lib/mock-data";
 
 export default function AdminDashboardPage() {
     const { isAuthenticated, logout } = useAdmin();
-    const { products, addProduct, updateProduct, deleteProduct } = useProducts();
+    const { products, categories, isLoading, isUsingSupabase, addProduct, updateProduct, deleteProduct } = useProducts();
     const router = useRouter();
 
     const [search, setSearch] = useState("");
@@ -83,6 +83,13 @@ export default function AdminDashboardPage() {
                         <p className="text-muted-foreground">
                             Gerencie seus produtos e estoque
                         </p>
+                        <div className={`inline-flex items-center gap-1.5 mt-2 px-2 py-1 rounded-md text-xs font-medium ${isUsingSupabase
+                                ? "bg-success/10 text-success"
+                                : "bg-yellow-500/10 text-yellow-500"
+                            }`}>
+                            <Database className="w-3 h-3" />
+                            {isUsingSupabase ? "Conectado ao Supabase" : "Usando localStorage"}
+                        </div>
                     </div>
                     <div className="flex items-center gap-3">
                         <button
@@ -229,10 +236,10 @@ export default function AdminDashboardPage() {
                                         <td className="px-4 py-4">
                                             <span
                                                 className={`inline-flex px-2 py-1 rounded-lg text-xs font-medium ${product.stock > 10
-                                                        ? "bg-success/10 text-success"
-                                                        : product.stock > 0
-                                                            ? "bg-yellow-500/10 text-yellow-500"
-                                                            : "bg-destructive/10 text-destructive"
+                                                    ? "bg-success/10 text-success"
+                                                    : product.stock > 0
+                                                        ? "bg-yellow-500/10 text-yellow-500"
+                                                        : "bg-destructive/10 text-destructive"
                                                     }`}
                                             >
                                                 {product.stock}
@@ -255,8 +262,8 @@ export default function AdminDashboardPage() {
                                                 <button
                                                     onClick={() => handleDelete(product.id)}
                                                     className={`p-2 rounded-lg transition-colors ${deleteConfirm === product.id
-                                                            ? "bg-destructive text-white"
-                                                            : "hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                                                        ? "bg-destructive text-white"
+                                                        : "hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
                                                         }`}
                                                     title={
                                                         deleteConfirm === product.id
