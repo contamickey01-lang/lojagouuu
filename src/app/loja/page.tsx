@@ -1,7 +1,11 @@
+"use client";
+
 import { ProductGrid } from "@/components/products/product-grid";
-import { products } from "@/lib/mock-data";
+import { useProducts } from "@/components/admin/products-provider";
 
 export default function LojaPage() {
+    const { products } = useProducts();
+
     return (
         <div className="min-h-screen px-4 sm:px-6 lg:px-10 py-8 lg:py-12">
             <div className="max-w-7xl mx-auto">

@@ -1,10 +1,19 @@
+"use client";
+
 import { FeaturedCarousel } from "@/components/products/featured-carousel";
 import { ProductGrid } from "@/components/products/product-grid";
-import { getFeaturedProducts, getPopularProducts } from "@/lib/mock-data";
+import { useProducts } from "@/components/admin/products-provider";
 
 export default function HomePage() {
-    const featuredProducts = getFeaturedProducts();
-    const popularProducts = getPopularProducts(10);
+    const { products } = useProducts();
+
+    const featuredProducts = products
+        .filter((p) => p.isFeatured)
+        .sort((a, b) => (a.featuredOrder || 99) - (b.featuredOrder || 99));
+
+    const popularProducts = [...products]
+        .sort((a, b) => b.salesCount - a.salesCount)
+        .slice(0, 10);
 
     return (
         <>

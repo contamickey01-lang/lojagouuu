@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { CartProvider } from "@/components/cart/cart-provider";
+import { AdminProvider } from "@/components/admin/admin-provider";
+import { ProductsProvider } from "@/components/admin/products-provider";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 
@@ -34,13 +36,17 @@ export default function RootLayout({
     return (
         <html lang="pt-BR" className="dark">
             <body className="min-h-screen bg-background text-foreground antialiased">
-                <CartProvider>
-                    <div className="flex min-h-screen flex-col">
-                        <Header />
-                        <main className="flex-1">{children}</main>
-                        <Footer />
-                    </div>
-                </CartProvider>
+                <AdminProvider>
+                    <ProductsProvider>
+                        <CartProvider>
+                            <div className="flex min-h-screen flex-col">
+                                <Header />
+                                <main className="flex-1">{children}</main>
+                                <Footer />
+                            </div>
+                        </CartProvider>
+                    </ProductsProvider>
+                </AdminProvider>
             </body>
         </html>
     );

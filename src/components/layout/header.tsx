@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { ShoppingCart, Menu, X, Search } from "lucide-react";
+import { ShoppingCart, Menu, X, Search, Settings } from "lucide-react";
 import { useState } from "react";
 import { useCart } from "@/components/cart/cart-provider";
+import { useAdmin } from "@/components/admin/admin-provider";
 import { cn } from "@/lib/utils";
 
 export function Header() {
     const { totalItems } = useCart();
+    const { isAuthenticated } = useAdmin();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     const navLinks = [
@@ -41,7 +43,7 @@ export function Header() {
                 </nav>
 
                 {/* Right Actions */}
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
                     {/* Search */}
                     <button
                         className="hidden sm:flex items-center justify-center w-10 h-10 rounded-lg hover:bg-secondary transition-colors"
@@ -62,6 +64,21 @@ export function Header() {
                                 {totalItems > 99 ? "99+" : totalItems}
                             </span>
                         )}
+                    </Link>
+
+                    {/* Admin Button */}
+                    <Link
+                        href="/admin"
+                        className={cn(
+                            "flex items-center justify-center w-10 h-10 rounded-lg transition-colors",
+                            isAuthenticated
+                                ? "bg-primary/20 hover:bg-primary/30 text-primary"
+                                : "hover:bg-secondary text-muted-foreground"
+                        )}
+                        aria-label="Painel Admin"
+                        title="Painel Admin"
+                    >
+                        <Settings className="w-5 h-5" />
                     </Link>
 
                     {/* Mobile Menu Toggle */}

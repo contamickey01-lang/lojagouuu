@@ -1,27 +1,54 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { useParams } from "next/navigation";
 import { ShoppingCart, Check, ArrowLeft } from "lucide-react";
-import { getProductBySlug, getPopularProducts } from "@/lib/mock-data";
 import { formatCurrency } from "@/lib/utils";
 import { ProductGrid } from "@/components/products/product-grid";
-import { AddToCartButton } from "./add-to-cart-button";
+import { useProducts } from "@/components/admin/products-provider";
+import { useCart } from "@/components/cart/cart-provider";
+import { useState } from "react";
 
-interface ProductPageProps {
-    params: Promise<{ slug: string }>;
-}
+export default function ProductPage() {
+    const params = useParams();
+    const slug = params.slug as string;
+    const { products } = useProducts();
+    const { addItem } = useCart();
+    const [added, setAdded] = useState(false);
 
-export default async function ProductPage({ params }: ProductPageProps) {
-    const { slug } = await params;
-    const product = getProductBySlug(slug);
+    const product = products.find((p) => p.slug === slug);
 
     if (!product) {
-        notFound();
+        return (
+            <div className="min-h-[60vh] flex flex-col items-center justify-center px-4">
+                <h1 className="text-2xl font-semibold text-foreground mb-2">
+                    Produto não encontrado
+                </h1>
+                <p className="text-muted-foreground mb-6">
+                    O produto que você está procurando não existe.
+                </p>
+                <Link
+                    href="/"
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary hover:bg-primary-hover text-white font-semibold transition-colors"
+                >
+                    <ArrowLeft className="w-5 h-5" />
+                    Voltar para a loja
+                </Link>
+            </div>
+        );
     }
 
-    const relatedProducts = getPopularProducts(4).filter(
-        (p) => p.id !== product.id
-    );
+    const relatedProducts = products
+        .filter((p) => p.id !== product.id)
+        .sort((a, b) => b.salesCount - a.salesCount)
+        .slice(0, 4);
+
+    const handleAddToCart = () => {
+        addItem(product);
+        setAdded(true);
+        setTimeout(() => setAdded(false), 2000);
+    };
 
     return (
         <div className="min-h-screen">
@@ -96,7 +123,26 @@ export default async function ProductPage({ params }: ProductPageProps) {
                             </div>
 
                             {/* Add to Cart */}
-                            <AddToCartButton product={product} />
+                            <button
+                                onClick={handleAddToCart}
+                                disabled={added}
+                                className={`flex items-center justify-center gap-2 w-full py-4 px-6 rounded-xl font-semibold transition-all ${added
+                                        ? "bg-success text-white"
+                                        : "bg-primary hover:bg-primary-hover text-white"
+                                    }`}
+                            >
+                                {added ? (
+                                    <>
+                                        <Check className="w-5 h-5" />
+                                        Adicionado ao Carrinho!
+                                    </>
+                                ) : (
+                                    <>
+                                        <ShoppingCart className="w-5 h-5" />
+                                        Comprar Agora
+                                    </>
+                                )}
+                            </button>
 
                             {/* Features */}
                             <div className="mt-8 pt-8 border-t border-border space-y-4">
