@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
         const result = await payment.create({
             body: {
                 transaction_amount: total,
-                description: `Compra na GouRp - ${items.length} itens`,
+                description: `Compra na GouPay - ${items.length} itens`,
                 payment_method_id: "pix",
                 payer: {
                     email: userEmail,

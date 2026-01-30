@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { useRouter, usePathname } from "next/navigation";
 
 // Emails autorizados como admin
-const ADMIN_EMAILS = ["admin@gourp.com", "gou@gourp.com"];
+const ADMIN_EMAILS = ["admin@goupay.me", "gou@goupay.me"];
 
 export function Header() {
     const { totalItems } = useCart();
@@ -42,7 +42,7 @@ export function Header() {
                     {/* Logo */}
                     <Link href="/" className="flex items-center gap-2">
                         <div className="relative">
-                            <span className="text-2xl font-bold text-gradient">GouRp</span>
+                            <span className="text-2xl font-bold text-gradient">GouPay</span>
                         </div>
                     </Link>
 

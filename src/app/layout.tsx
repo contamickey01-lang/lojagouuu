@@ -8,20 +8,20 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 
 export const metadata: Metadata = {
-    title: "GouRp - Sua Loja de Keys Steam",
+    title: "GouPay - Sua Loja de Keys Steam",
     description: "Licenças autênticas, preços imbatíveis e qualidade extraordinária. Compre suas keys Steam com segurança.",
     keywords: ["steam keys", "jogos", "games", "keys baratas", "steam"],
     openGraph: {
-        title: "GouRp - Sua Loja de Keys Steam",
+        title: "GouPay - Sua Loja de Keys Steam",
         description: "Licenças autênticas, preços imbatíveis e qualidade extraordinária",
-        url: "https://gourp.vercel.app",
-        siteName: "GouRp",
+        url: "https://www.goupay.me",
+        siteName: "GouPay",
         locale: "pt_BR",
         type: "website",
     },
     twitter: {
         card: "summary_large_image",
-        title: "GouRp - Sua Loja de Keys Steam",
+        title: "GouPay - Sua Loja de Keys Steam",
         description: "Licenças autênticas, preços imbatíveis e qualidade extraordinária",
     },
     icons: {
