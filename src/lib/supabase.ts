@@ -1,26 +1,36 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-// Cliente Supabase - criado sob demanda
+// Cliente Supabase - singleton criado sob demanda
 let supabaseInstance: SupabaseClient | null = null;
+let initialized = false;
 
 export function getSupabase(): SupabaseClient | null {
-    // Se já foi criado, retorna
-    if (supabaseInstance) return supabaseInstance;
+    // Se já foi inicializado, retorna o resultado (mesmo que seja null)
+    if (initialized) return supabaseInstance;
+
+    // Marca como inicializado para não tentar novamente
+    initialized = true;
 
     // Verifica se as variáveis estão disponíveis
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    if (supabaseUrl && supabaseAnonKey) {
-        supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
-        return supabaseInstance;
+    console.log("[Supabase] URL:", supabaseUrl ? "✓ Configurado" : "✗ Não configurado");
+    console.log("[Supabase] Key:", supabaseAnonKey ? "✓ Configurado" : "✗ Não configurado");
+
+    if (supabaseUrl && supabaseAnonKey && supabaseUrl.includes("supabase")) {
+        try {
+            supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
+            console.log("[Supabase] Cliente criado com sucesso!");
+            return supabaseInstance;
+        } catch (error) {
+            console.error("[Supabase] Erro ao criar cliente:", error);
+        }
     }
 
+    console.log("[Supabase] Usando modo local (localStorage)");
     return null;
 }
-
-// Export para compatibilidade (lazy)
-export const supabase = typeof window !== "undefined" ? getSupabase() : null;
 
 // Tipos do banco de dados
 export interface DBProduct {
