@@ -53,6 +53,12 @@ export async function POST(request: NextRequest) {
         const firstName = nameParts[0];
         const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "Sobrenome";
 
+        // Validar URL de notificação
+        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+        const notificationUrl = siteUrl && siteUrl.startsWith('http')
+            ? `${siteUrl}/api/webhook/mercadopago`
+            : undefined;
+
         const result = await payment.create({
             body: {
                 transaction_amount: total,
@@ -74,7 +80,7 @@ export async function POST(request: NextRequest) {
                     total,
                     createdAt: new Date().toISOString(),
                 }),
-                notification_url: `${process.env.NEXT_PUBLIC_SITE_URL}/api/webhook/mercadopago`,
+                ...(notificationUrl ? { notification_url: notificationUrl } : {}),
             },
         });
 
