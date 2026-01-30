@@ -84,8 +84,8 @@ export default function AdminDashboardPage() {
                             Gerencie seus produtos e estoque
                         </p>
                         <div className={`inline-flex items-center gap-1.5 mt-2 px-2 py-1 rounded-md text-xs font-medium ${isUsingSupabase
-                                ? "bg-success/10 text-success"
-                                : "bg-yellow-500/10 text-yellow-500"
+                            ? "bg-success/10 text-success"
+                            : "bg-yellow-500/10 text-yellow-500"
                             }`}>
                             <Database className="w-3 h-3" />
                             {isUsingSupabase ? "Conectado ao Supabase" : "Usando localStorage"}
@@ -335,6 +335,8 @@ function ProductModal({
         categoryId: product?.categoryId || categories[0]?.id || 1,
         salesCount: product?.salesCount || 0,
         isFeatured: product?.isFeatured || false,
+        featuredImageUrl: product?.featuredImageUrl || "",
+        featuredVideoUrl: product?.featuredVideoUrl || "",
     });
 
     const handleChange = (
@@ -448,7 +450,7 @@ function ProductModal({
                     {/* URL da Imagem */}
                     <div>
                         <label className="block text-sm font-medium text-foreground mb-1">
-                            URL da Imagem *
+                            URL da Imagem Principal *
                         </label>
                         <input
                             type="url"
@@ -457,6 +459,36 @@ function ProductModal({
                             onChange={handleChange}
                             required
                             placeholder="https://..."
+                            className="w-full px-4 py-2 rounded-xl bg-secondary border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+                    </div>
+
+                    {/* URL da Imagem em Destaque */}
+                    <div>
+                        <label className="block text-sm font-medium text-foreground mb-1">
+                            URL da Imagem em Destaque (Carousel)
+                        </label>
+                        <input
+                            type="url"
+                            name="featuredImageUrl"
+                            value={formData.featuredImageUrl}
+                            onChange={handleChange}
+                            placeholder="https://... (PNG/JPG)"
+                            className="w-full px-4 py-2 rounded-xl bg-secondary border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+                    </div>
+
+                    {/* URL do Vídeo em Destaque */}
+                    <div>
+                        <label className="block text-sm font-medium text-foreground mb-1">
+                            URL do Vídeo em Destaque (Carousel)
+                        </label>
+                        <input
+                            type="url"
+                            name="featuredVideoUrl"
+                            value={formData.featuredVideoUrl}
+                            onChange={handleChange}
+                            placeholder="https://... (MP4 ou link direto)"
                             className="w-full px-4 py-2 rounded-xl bg-secondary border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                     </div>
