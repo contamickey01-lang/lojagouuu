@@ -15,20 +15,29 @@ export function getSupabase(): SupabaseClient | null {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    console.log("[Supabase] URL:", supabaseUrl ? "✓ Configurado" : "✗ Não configurado");
-    console.log("[Supabase] Key:", supabaseAnonKey ? "✓ Configurado" : "✗ Não configurado");
+    // Log detalhado
+    console.log("=== SUPABASE DEBUG ===");
+    console.log("NEXT_PUBLIC_SUPABASE_URL:", supabaseUrl || "(vazio/undefined)");
+    console.log("NEXT_PUBLIC_SUPABASE_ANON_KEY:", supabaseAnonKey ? supabaseAnonKey.substring(0, 20) + "..." : "(vazio/undefined)");
+    console.log("URL é válida?", supabaseUrl && supabaseUrl.includes("supabase") ? "SIM" : "NÃO");
+    console.log("Key existe?", supabaseAnonKey ? "SIM" : "NÃO");
+    console.log("======================");
 
     if (supabaseUrl && supabaseAnonKey && supabaseUrl.includes("supabase")) {
         try {
             supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
-            console.log("[Supabase] Cliente criado com sucesso!");
+            console.log("[Supabase] ✅ Cliente criado com sucesso!");
             return supabaseInstance;
         } catch (error) {
-            console.error("[Supabase] Erro ao criar cliente:", error);
+            console.error("[Supabase] ❌ Erro ao criar cliente:", error);
         }
+    } else {
+        console.log("[Supabase] ⚠️ Usando modo local - Motivo:");
+        if (!supabaseUrl) console.log("  - NEXT_PUBLIC_SUPABASE_URL não está definido");
+        if (!supabaseAnonKey) console.log("  - NEXT_PUBLIC_SUPABASE_ANON_KEY não está definido");
+        if (supabaseUrl && !supabaseUrl.includes("supabase")) console.log("  - URL não contém 'supabase'");
     }
 
-    console.log("[Supabase] Usando modo local (localStorage)");
     return null;
 }
 
