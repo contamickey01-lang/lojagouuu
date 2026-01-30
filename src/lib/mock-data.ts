@@ -2,9 +2,10 @@ import { Product, Category } from "@/types";
 
 // Categories
 export const categories: Category[] = [
-    { id: 1, name: "SteamKeys (aleatórias)", slug: "steam-keys-aleatorias" },
-    { id: 11, name: "Steam Offline", slug: "steam-offline" },
-    { id: 27, name: "Steam CD Key", slug: "steam-cd-key" },
+    { id: 1, name: "Steam Keys", slug: "steam-keys" },
+    { id: 2, name: "Steam Offline", slug: "steam-offline" },
+    { id: 3, name: "Gift Cards", slug: "gift-cards" },
+    { id: 4, name: "FiveM", slug: "fivem" },
 ];
 
 // Products

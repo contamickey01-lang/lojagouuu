@@ -85,6 +85,7 @@ export default function ProductPage() {
                                     fill
                                     className="object-cover"
                                     priority
+                                    quality={100}
                                 />
                                 {product.discount > 0 && (
                                     <div className="absolute top-4 left-4">
@@ -137,10 +138,10 @@ export default function ProductPage() {
                                     onClick={handleAddToCart}
                                     disabled={added}
                                     className={`flex items-center justify-center gap-2 w-full py-4 px-6 rounded-xl font-semibold transition-all ${added
-                                            ? "bg-success text-white"
-                                            : user
-                                                ? "bg-primary hover:bg-primary-hover text-white"
-                                                : "bg-secondary hover:bg-secondary/80 text-foreground border border-border"
+                                        ? "bg-success text-white"
+                                        : user
+                                            ? "bg-primary hover:bg-primary-hover text-white"
+                                            : "bg-secondary hover:bg-secondary/80 text-foreground border border-border"
                                         }`}
                                 >
                                     {added ? (

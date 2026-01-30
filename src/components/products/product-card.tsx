@@ -57,7 +57,8 @@ export function ProductCard({ product, className }: ProductCardProps) {
                         alt={product.name}
                         fill
                         className="object-cover product-img-zoom"
-                        sizes="(max-width: 640px) 33vw, (max-width: 1024px) 20vw, 14vw"
+                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                        quality={90}
                     />
                 </div>
 
