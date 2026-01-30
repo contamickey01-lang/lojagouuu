@@ -138,6 +138,7 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
                     is_featured: product.isFeatured,
                     featured_order: product.featuredOrder || null,
                     sales_count: product.salesCount || 0,
+                    variants: product.variants || null,
                 })
                 .select()
                 .single();
@@ -173,6 +174,7 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
             if (updates.isFeatured !== undefined) dbUpdates.is_featured = updates.isFeatured;
             if (updates.featuredOrder !== undefined) dbUpdates.featured_order = updates.featuredOrder;
             if (updates.salesCount !== undefined) dbUpdates.sales_count = updates.salesCount;
+            if (updates.variants !== undefined) dbUpdates.variants = updates.variants;
             dbUpdates.updated_at = new Date().toISOString();
 
             const { error } = await supabase

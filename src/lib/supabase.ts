@@ -58,6 +58,7 @@ export interface DBProduct {
     is_featured: boolean;
     featured_order: number | null;
     sales_count: number;
+    variants: any | null;
     created_at: string;
     updated_at: string;
 }
@@ -92,5 +93,6 @@ export function dbProductToProduct(dbProduct: DBProduct, category?: DBCategory) 
         isFeatured: dbProduct.is_featured,
         featuredOrder: dbProduct.featured_order || undefined,
         salesCount: dbProduct.sales_count,
+        variants: dbProduct.variants || undefined,
     };
 }

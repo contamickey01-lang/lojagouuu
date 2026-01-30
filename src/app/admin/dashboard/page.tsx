@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { useAdmin } from "@/components/admin/admin-provider";
 import { useProducts } from "@/components/admin/products-provider";
-import { Product, Category } from "@/types";
+import { Product, Category, ProductVariant } from "@/types";
 import { formatCurrency, slugify } from "@/lib/utils";
 
 export default function AdminDashboardPage() {
@@ -339,6 +339,22 @@ function ProductModal({
         featuredVideoUrl: product?.featuredVideoUrl || "",
     });
 
+    const [variants, setVariants] = useState<ProductVariant[]>(product?.variants || []);
+
+    const addVariant = () => {
+        setVariants([...variants, { name: "", price: 0 }]);
+    };
+
+    const removeVariant = (index: number) => {
+        setVariants(variants.filter((_, i) => i !== index));
+    };
+
+    const handleVariantChange = (index: number, field: keyof ProductVariant, value: string | number) => {
+        const newVariants = [...variants];
+        newVariants[index] = { ...newVariants[index], [field]: value };
+        setVariants(newVariants);
+    };
+
     const handleChange = (
         e: React.ChangeEvent<
             HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
@@ -378,6 +394,7 @@ function ProductModal({
         onSave({
             ...formData,
             category,
+            variants: variants.length > 0 ? variants : undefined,
         });
     };
 
@@ -603,6 +620,66 @@ function ProductModal({
                         <label htmlFor="isFeatured" className="text-sm text-foreground">
                             Produto em destaque (aparece no carousel)
                         </label>
+                    </div>
+
+                    {/* Variantes de Preço */}
+                    <div className="space-y-4 pt-4 border-t border-border">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">
+                                Variantes de Preço (ex: Diário, Semanal)
+                            </h3>
+                            <button
+                                type="button"
+                                onClick={addVariant}
+                                className="text-xs flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors font-medium"
+                            >
+                                <Plus className="w-3.5 h-3.5" />
+                                Adicionar Variante
+                            </button>
+                        </div>
+
+                        {variants.length === 0 ? (
+                            <p className="text-xs text-muted-foreground italic bg-secondary/30 p-3 rounded-xl border border-dashed border-border text-center">
+                                Nenhuma variante configurada. O preço principal será usado.
+                            </p>
+                        ) : (
+                            <div className="space-y-3">
+                                {variants.map((v, index) => (
+                                    <div key={index} className="flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                                        <div className="flex-1 grid grid-cols-2 gap-3">
+                                            <input
+                                                type="text"
+                                                placeholder="Nome (ex: Diário)"
+                                                value={v.name}
+                                                onChange={(e) => handleVariantChange(index, "name", e.target.value)}
+                                                className="w-full px-3 py-2 text-sm rounded-lg bg-secondary border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                                            />
+                                            <div className="relative">
+                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground text-primary">R$</span>
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    placeholder="Preço"
+                                                    value={v.price}
+                                                    onChange={(e) => handleVariantChange(index, "price", parseFloat(e.target.value) || 0)}
+                                                    className="w-full pl-8 pr-3 py-2 text-sm rounded-lg bg-secondary border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                                                />
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => removeVariant(index)}
+                                            className="p-2 text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        <p className="text-[10px] text-muted-foreground">
+                            * Se houver variantes, o cliente terá que escolher uma. O preço principal (R$ {formData.price}) será usado apenas como "Preço Inicial".
+                        </p>
                     </div>
 
                     {/* Botões */}

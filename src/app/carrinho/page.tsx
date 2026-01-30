@@ -66,8 +66,10 @@ export default function CartPage() {
                 body: JSON.stringify({
                     items: items.map((item) => ({
                         id: item.product.id,
-                        name: item.product.name,
-                        price: item.product.price,
+                        name: item.selectedVariant
+                            ? `${item.product.name} (${item.selectedVariant.name})`
+                            : item.product.name,
+                        price: item.selectedVariant ? item.selectedVariant.price : item.product.price,
                         quantity: item.quantity,
                         imageUrl: item.product.imageUrl,
                     })),
@@ -190,14 +192,20 @@ export default function CartPage() {
                                                     </p>
                                                 )}
 
+                                                {item.selectedVariant && (
+                                                    <p className="inline-block px-2 py-0.5 mt-2 rounded bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">
+                                                        Plano: {item.selectedVariant.name}
+                                                    </p>
+                                                )}
+
                                                 <div className="flex items-center gap-2 mt-2">
-                                                    {item.product.comparePrice > item.product.price && (
+                                                    {(item.selectedVariant ? 0 : item.product.comparePrice > item.product.price) && (
                                                         <span className="text-sm text-muted-foreground line-through">
                                                             {formatCurrency(item.product.comparePrice)}
                                                         </span>
                                                     )}
                                                     <span className="text-lg font-bold text-primary">
-                                                        {formatCurrency(item.product.price)}
+                                                        {formatCurrency(item.selectedVariant ? item.selectedVariant.price : item.product.price)}
                                                     </span>
                                                 </div>
 
@@ -206,7 +214,7 @@ export default function CartPage() {
                                                     <div className="flex items-center gap-2">
                                                         <button
                                                             onClick={() =>
-                                                                updateQuantity(item.product.id, item.quantity - 1)
+                                                                updateQuantity(item.product.id, item.quantity - 1, item.selectedVariant?.name)
                                                             }
                                                             className="w-8 h-8 rounded-lg bg-secondary hover:bg-secondary/80 flex items-center justify-center transition-colors"
                                                         >
@@ -217,7 +225,7 @@ export default function CartPage() {
                                                         </span>
                                                         <button
                                                             onClick={() =>
-                                                                updateQuantity(item.product.id, item.quantity + 1)
+                                                                updateQuantity(item.product.id, item.quantity + 1, item.selectedVariant?.name)
                                                             }
                                                             className="w-8 h-8 rounded-lg bg-secondary hover:bg-secondary/80 flex items-center justify-center transition-colors"
                                                         >
@@ -226,7 +234,7 @@ export default function CartPage() {
                                                     </div>
 
                                                     <button
-                                                        onClick={() => removeItem(item.product.id)}
+                                                        onClick={() => removeItem(item.product.id, item.selectedVariant?.name)}
                                                         className="text-destructive hover:text-destructive/80 transition-colors"
                                                         aria-label="Remover item"
                                                     >
@@ -241,7 +249,7 @@ export default function CartPage() {
                                                     Subtotal
                                                 </span>
                                                 <span className="text-xl font-bold text-foreground">
-                                                    {formatCurrency(item.product.price * item.quantity)}
+                                                    {formatCurrency((item.selectedVariant ? item.selectedVariant.price : item.product.price) * item.quantity)}
                                                 </span>
                                             </div>
                                         </div>

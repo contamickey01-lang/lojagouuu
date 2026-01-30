@@ -1,3 +1,8 @@
+export interface ProductVariant {
+    name: string;
+    price: number;
+}
+
 export interface Product {
     id: number;
     name: string;
@@ -15,6 +20,7 @@ export interface Product {
     featuredImageUrl?: string;
     featuredVideoUrl?: string;
     featuredOrder?: number;
+    variants?: ProductVariant[];
 }
 
 export interface Category {
@@ -26,6 +32,7 @@ export interface Category {
 export interface CartItem {
     product: Product;
     quantity: number;
+    selectedVariant?: ProductVariant;
 }
 
 export interface Order {

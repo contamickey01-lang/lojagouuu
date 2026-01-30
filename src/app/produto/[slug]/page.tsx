@@ -4,13 +4,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ShoppingCart, Check, ArrowLeft, Lock } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
 import { ProductGrid } from "@/components/products/product-grid";
 import { useProducts } from "@/components/admin/products-provider";
 import { useCart } from "@/components/cart/cart-provider";
 import { useAuth } from "@/components/auth/auth-provider";
 import { AuthModal } from "@/components/auth/auth-modal";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { ProductVariant } from "@/types";
 
 export default function ProductPage() {
     const params = useParams();
@@ -20,8 +21,16 @@ export default function ProductPage() {
     const { user } = useAuth();
     const [added, setAdded] = useState(false);
     const [showAuthModal, setShowAuthModal] = useState(false);
+    const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
 
     const product = products.find((p) => p.slug === slug);
+
+    // Inicializar variante padrão
+    useMemo(() => {
+        if (product?.variants && product.variants.length > 0 && !selectedVariant) {
+            setSelectedVariant(product.variants[0]);
+        }
+    }, [product, selectedVariant]);
 
     if (!product) {
         return (
@@ -54,7 +63,7 @@ export default function ProductPage() {
             return;
         }
 
-        addItem(product);
+        addItem(product, selectedVariant || undefined);
         setAdded(true);
         setTimeout(() => setAdded(false), 2000);
     };
@@ -118,9 +127,40 @@ export default function ProductPage() {
                                         </span>
                                     )}
                                     <span className="text-4xl font-bold text-primary">
-                                        {formatCurrency(product.price)}
+                                        {formatCurrency(selectedVariant ? selectedVariant.price : product.price)}
                                     </span>
                                 </div>
+
+                                {/* Variants Selector */}
+                                {product.variants && product.variants.length > 0 && (
+                                    <div className="mb-8 p-4 bg-secondary/50 rounded-2xl border border-border">
+                                        <h3 className="text-sm font-semibold text-foreground mb-3 uppercase tracking-wider">
+                                            Escolha o Plano
+                                        </h3>
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                            {product.variants.map((v) => (
+                                                <button
+                                                    key={v.name}
+                                                    onClick={() => setSelectedVariant(v)}
+                                                    className={cn(
+                                                        "px-3 py-3 rounded-xl border text-sm font-medium transition-all flex flex-col items-center gap-1",
+                                                        selectedVariant?.name === v.name
+                                                            ? "bg-primary border-primary text-white shadow-lg shadow-primary/20 scale-105"
+                                                            : "bg-background border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                                                    )}
+                                                >
+                                                    <span>{v.name}</span>
+                                                    <span className={cn(
+                                                        "text-[10px]",
+                                                        selectedVariant?.name === v.name ? "text-white/80" : "text-primary"
+                                                    )}>
+                                                        {formatCurrency(v.price)}
+                                                    </span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Stock & Sales */}
                                 <div className="flex items-center gap-4 mb-6">

@@ -20,9 +20,19 @@ export function ProductCard({ product, className }: ProductCardProps) {
     const { user } = useAuth();
     const [showAuthModal, setShowAuthModal] = useState(false);
 
+    const hasVariants = product.variants && product.variants.length > 0;
+    const lowestPrice = hasVariants
+        ? Math.min(...product.variants!.map((v) => v.price))
+        : product.price;
+
     const handleAddToCart = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
+
+        if (hasVariants) {
+            window.location.href = `/produto/${product.slug}`;
+            return;
+        }
 
         if (!user) {
             setShowAuthModal(true);
@@ -79,14 +89,21 @@ export function ProductCard({ product, className }: ProductCardProps) {
                     {/* Price */}
                     <div className="mt-auto pt-1 flex items-end justify-between gap-1">
                         <div className="flex flex-col">
-                            {product.comparePrice > product.price && (
+                            {product.comparePrice > lowestPrice && (
                                 <span className="text-[10px] text-muted-foreground line-through">
                                     {formatCurrency(product.comparePrice)}
                                 </span>
                             )}
-                            <span className="text-sm sm:text-base font-bold text-primary">
-                                {formatCurrency(product.price)}
-                            </span>
+                            <div className="flex flex-col">
+                                {hasVariants && (
+                                    <span className="text-[8px] sm:text-[9px] text-muted-foreground leading-none -mb-0.5">
+                                        A partir de
+                                    </span>
+                                )}
+                                <span className="text-sm sm:text-base font-bold text-primary">
+                                    {formatCurrency(lowestPrice)}
+                                </span>
+                            </div>
                         </div>
 
                         {/* Add to Cart Button */}
