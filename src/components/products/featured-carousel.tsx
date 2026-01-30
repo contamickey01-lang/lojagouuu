@@ -37,33 +37,8 @@ export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
         <section className="relative w-full h-[300px] sm:h-[400px] lg:h-[550px] overflow-hidden bg-black">
             {/* Background Image/Video */}
             <div className="absolute inset-0">
-                {/* Blur Background Layer */}
-                <div className="absolute inset-0 z-0">
-                    {currentProduct.featuredVideoUrl ? (
-                        <video
-                            key={`blur-${currentProduct.id}`}
-                            autoPlay
-                            muted
-                            loop
-                            playsInline
-                            className="w-full h-full object-cover opacity-50 blur-2xl scale-110"
-                        >
-                            <source src={currentProduct.featuredVideoUrl} type="video/mp4" />
-                        </video>
-                    ) : (
-                        <Image
-                            src={currentProduct.featuredImageUrl || currentProduct.imageUrl}
-                            alt=""
-                            fill
-                            className="object-cover opacity-50 blur-2xl scale-110"
-                            priority
-                            unoptimized
-                        />
-                    )}
-                </div>
-
-                {/* Main Content Layer */}
-                <div className="relative z-10 w-full h-full flex items-center justify-center">
+                {/* Main Content Layer - Full Width Cover */}
+                <div className="absolute inset-0">
                     {currentProduct.featuredVideoUrl ? (
                         <video
                             key={currentProduct.id}
@@ -71,21 +46,19 @@ export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
                             muted
                             loop
                             playsInline
-                            className="max-w-full max-h-full object-contain"
+                            className="w-full h-full object-cover"
                         >
                             <source src={currentProduct.featuredVideoUrl} type="video/mp4" />
                         </video>
                     ) : (
-                        <div className="relative w-full h-full flex items-center justify-center">
-                            <Image
-                                src={currentProduct.featuredImageUrl || currentProduct.imageUrl}
-                                alt={currentProduct.name}
-                                fill
-                                className="object-contain"
-                                priority
-                                unoptimized
-                            />
-                        </div>
+                        <Image
+                            src={currentProduct.featuredImageUrl || currentProduct.imageUrl}
+                            alt={currentProduct.name}
+                            fill
+                            className="object-cover"
+                            priority
+                            unoptimized
+                        />
                     )}
                 </div>
                 {/* Gradient Overlay */}
