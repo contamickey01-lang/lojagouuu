@@ -31,8 +31,6 @@ export function Header() {
     const navLinks = [
         { href: "/", label: "Início" },
         { href: "/loja", label: "Loja" },
-        { href: "/categorias/steam-offline", label: "Steam Offline" },
-        { href: "/categorias/steam-keys", label: "Steam Keys" },
     ];
 
     return (
