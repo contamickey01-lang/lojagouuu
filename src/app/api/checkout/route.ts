@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { MercadoPagoConfig, Preference } from "mercadopago";
+import { MercadoPagoConfig, Payment } from "mercadopago";
 
 // Configurar Mercado Pago
 const client = new MercadoPagoConfig({
@@ -18,57 +18,55 @@ interface CheckoutRequest {
     items: CartItem[];
     userEmail: string;
     userId?: string;
+    payerName: string;
+    payerCpf: string;
 }
 
 export async function POST(request: NextRequest) {
     try {
         const body: CheckoutRequest = await request.json();
-        const { items, userEmail, userId } = body;
+        const { items, userEmail, userId, payerName, payerCpf } = body;
 
         if (!items || items.length === 0) {
-            return NextResponse.json(
-                { error: "Carrinho vazio" },
-                { status: 400 }
-            );
+            return NextResponse.json({ error: "Carrinho vazio" }, { status: 400 });
+        }
+
+        if (!payerName || !payerCpf) {
+            return NextResponse.json({ error: "Nome e CPF são obrigatórios para PIX" }, { status: 400 });
         }
 
         if (!process.env.MERCADOPAGO_ACCESS_TOKEN) {
-            return NextResponse.json(
-                { error: "Mercado Pago não configurado" },
-                { status: 500 }
-            );
+            return NextResponse.json({ error: "Mercado Pago não configurado" }, { status: 500 });
         }
-
-        // Preparar itens para o Mercado Pago
-        const preferenceItems = items.map((item) => ({
-            id: String(item.id),
-            title: item.name,
-            quantity: item.quantity,
-            unit_price: item.price,
-            currency_id: "BRL",
-            picture_url: item.imageUrl,
-        }));
 
         // Calcular total
         const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-        // Criar preferência de pagamento
-        const preference = new Preference(client);
+        // Criar Pagamento Transparente (PIX)
+        const payment = new Payment(client);
 
-        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://lojagouuu-61dm.vercel.app";
+        // Limpar CPF (deixar apenas números)
+        const cleanCpf = payerCpf.replace(/\D/g, "");
 
-        const result = await preference.create({
+        // Separar nome e sobrenome
+        const nameParts = payerName.split(" ");
+        const firstName = nameParts[0];
+        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "Sobrenome";
+
+        const result = await payment.create({
             body: {
-                items: preferenceItems,
+                transaction_amount: total,
+                description: `Compra na GouRp - ${items.length} itens`,
+                payment_method_id: "pix",
                 payer: {
                     email: userEmail,
+                    first_name: firstName,
+                    last_name: lastName,
+                    identification: {
+                        type: "CPF",
+                        number: cleanCpf,
+                    },
                 },
-                back_urls: {
-                    success: `${siteUrl}/pedido/sucesso`,
-                    failure: `${siteUrl}/pedido/falha`,
-                    pending: `${siteUrl}/pedido/pendente`,
-                },
-                auto_return: "approved",
                 external_reference: JSON.stringify({
                     userId,
                     userEmail,
@@ -76,20 +74,26 @@ export async function POST(request: NextRequest) {
                     total,
                     createdAt: new Date().toISOString(),
                 }),
-                notification_url: `${siteUrl}/api/webhook/mercadopago`,
-                statement_descriptor: "GOURP KEYS",
+                notification_url: `${process.env.NEXT_PUBLIC_SITE_URL}/api/webhook/mercadopago`,
             },
         });
 
+        // Retornar dados do PIX para o frontend
         return NextResponse.json({
             id: result.id,
-            init_point: result.init_point,
-            sandbox_init_point: result.sandbox_init_point,
+            status: result.status,
+            qr_code: result.point_of_interaction?.transaction_data?.qr_code,
+            qr_code_base64: result.point_of_interaction?.transaction_data?.qr_code_base64,
+            ticket_url: result.point_of_interaction?.transaction_data?.ticket_url,
         });
-    } catch (error) {
-        console.error("[Checkout] Erro:", error);
+    } catch (error: any) {
+        console.error("[Checkout PIX] Erro:", error);
+
+        // Tentar extrair erro detalhado do Mercado Pago
+        const mpError = error.cause?.[0]?.description || error.message || "Erro ao gerar PIX";
+
         return NextResponse.json(
-            { error: "Erro ao criar checkout" },
+            { error: mpError },
             { status: 500 }
         );
     }
