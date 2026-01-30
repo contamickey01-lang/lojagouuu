@@ -34,31 +34,60 @@ export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
     };
 
     return (
-        <section className="relative w-full h-[500px] lg:h-[600px] overflow-hidden">
+        <section className="relative w-full h-[300px] sm:h-[400px] lg:h-[550px] overflow-hidden bg-black">
             {/* Background Image/Video */}
             <div className="absolute inset-0">
-                {currentProduct.featuredVideoUrl ? (
-                    <video
-                        key={currentProduct.id}
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
-                        className="w-full h-full object-cover"
-                    >
-                        <source src={currentProduct.featuredVideoUrl} type="video/mp4" />
-                    </video>
-                ) : (
-                    <Image
-                        src={currentProduct.featuredImageUrl || currentProduct.imageUrl}
-                        alt={currentProduct.name}
-                        fill
-                        className="object-cover"
-                        priority
-                        unoptimized
-                        sizes="100vw"
-                    />
-                )}
+                {/* Blur Background Layer */}
+                <div className="absolute inset-0 z-0">
+                    {currentProduct.featuredVideoUrl ? (
+                        <video
+                            key={`blur-${currentProduct.id}`}
+                            autoPlay
+                            muted
+                            loop
+                            playsInline
+                            className="w-full h-full object-cover opacity-50 blur-2xl scale-110"
+                        >
+                            <source src={currentProduct.featuredVideoUrl} type="video/mp4" />
+                        </video>
+                    ) : (
+                        <Image
+                            src={currentProduct.featuredImageUrl || currentProduct.imageUrl}
+                            alt=""
+                            fill
+                            className="object-cover opacity-50 blur-2xl scale-110"
+                            priority
+                            unoptimized
+                        />
+                    )}
+                </div>
+
+                {/* Main Content Layer */}
+                <div className="relative z-10 w-full h-full flex items-center justify-center">
+                    {currentProduct.featuredVideoUrl ? (
+                        <video
+                            key={currentProduct.id}
+                            autoPlay
+                            muted
+                            loop
+                            playsInline
+                            className="max-w-full max-h-full object-contain"
+                        >
+                            <source src={currentProduct.featuredVideoUrl} type="video/mp4" />
+                        </video>
+                    ) : (
+                        <div className="relative w-full h-full flex items-center justify-center">
+                            <Image
+                                src={currentProduct.featuredImageUrl || currentProduct.imageUrl}
+                                alt={currentProduct.name}
+                                fill
+                                className="object-contain"
+                                priority
+                                unoptimized
+                            />
+                        </div>
+                    )}
+                </div>
                 {/* Gradient Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
                 <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-transparent" />
