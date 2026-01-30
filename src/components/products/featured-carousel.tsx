@@ -46,7 +46,7 @@ export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
                             muted
                             loop
                             playsInline
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-fill"
                         >
                             <source src={currentProduct.featuredVideoUrl} type="video/mp4" />
                         </video>
@@ -55,7 +55,7 @@ export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
                             src={currentProduct.featuredImageUrl || currentProduct.imageUrl}
                             alt={currentProduct.name}
                             fill
-                            className="object-cover"
+                            className="object-fill"
                             priority
                             unoptimized
                         />
