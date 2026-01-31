@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ShoppingCart, Menu, X, Search, Settings, User } from "lucide-react";
+import { ShoppingCart, Menu, X, Search, Settings, User, MessageCircle, Moon } from "lucide-react";
 import { useState } from "react";
 import { useCart } from "@/components/cart/cart-provider";
 import { useAdmin } from "@/components/admin/admin-provider";
@@ -35,175 +35,119 @@ export function Header() {
 
     return (
         <>
-            <div className="absolute top-0 left-0 w-full pt-4 sm:pt-6 flex justify-center bg-transparent z-50">
-                <header className="w-[95%] max-w-6xl border border-white/10 bg-white/5 backdrop-blur-xl rounded-2xl shadow-xl">
-                    <div className="flex h-14 items-center justify-between px-6">
-                        {/* Logo */}
-                        <Link href="/" className="flex items-center gap-2">
-                            <div className="relative">
-                                <span className="text-2xl font-bold text-gradient">GouPay</span>
-                            </div>
+            <div className="w-full bg-black/95 backdrop-blur-md border-b border-white/5 z-50">
+                <header className="max-w-[1400px] mx-auto h-16 flex items-center justify-between px-4 lg:px-6">
+                    {/* Left: Search Bar */}
+                    <div className="flex items-center gap-4 flex-1 max-w-xl">
+                        <div className="relative w-full group">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                            <input
+                                type="text"
+                                placeholder="Busque por jogos, categorias ou posts"
+                                value={searchQuery}
+                                onChange={(e) => {
+                                    setSearchQuery(e.target.value);
+                                    if (pathname !== "/loja" && e.target.value.length > 0) {
+                                        router.push("/loja");
+                                    }
+                                }}
+                                className="w-full h-10 pl-10 pr-4 rounded-xl bg-white/5 border border-white/10 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/50 focus:bg-white/10 transition-all"
+                            />
+                        </div>
+
+                        {/* Social/Community Link */}
+                        <div className="hidden sm:flex items-center justify-center w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors cursor-pointer text-muted-foreground hover:text-white">
+                            <MessageCircle className="w-5 h-5" />
+                        </div>
+                    </div>
+
+                    {/* Right: Actions */}
+                    <div className="flex items-center gap-3">
+                        {/* Cart */}
+                        <Link
+                            href="/carrinho"
+                            className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
+                        >
+                            <ShoppingCart className="w-5 h-5 text-muted-foreground hover:text-white transition-colors" />
+                            {totalItems > 0 && (
+                                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white shadow-lg shadow-primary/20">
+                                    {totalItems > 99 ? "99+" : totalItems}
+                                </span>
+                            )}
                         </Link>
 
-                        {/* Desktop Navigation */}
-                        <nav className="hidden md:flex items-center gap-6">
-                            {navLinks.map((link) => (
-                                <Link
-                                    key={link.href}
-                                    href={link.href}
-                                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                                >
-                                    {link.label}
-                                </Link>
-                            ))}
-                        </nav>
-
-                        {/* Right Actions */}
-                        <div className="flex items-center gap-2">
-                            {/* Search */}
-                            <div className="relative flex items-center">
-                                {isSearchOpen ? (
-                                    <div className="absolute right-0 flex items-center animate-in slide-in-from-right-2 duration-200">
-                                        <input
-                                            type="text"
-                                            placeholder="Buscar..."
-                                            autoFocus
-                                            value={searchQuery}
-                                            onChange={(e) => {
-                                                setSearchQuery(e.target.value);
-                                                if (pathname !== "/loja" && e.target.value.length > 0) {
-                                                    router.push("/loja");
-                                                }
-                                            }}
-                                            onBlur={() => {
-                                                if (searchQuery === "") setIsSearchOpen(false);
-                                            }}
-                                            className="w-40 sm:w-64 px-4 py-2 rounded-xl bg-secondary border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary pr-10"
-                                        />
-                                        <button
-                                            onClick={() => {
-                                                setSearchQuery("");
-                                                setIsSearchOpen(false);
-                                            }}
-                                            className="absolute right-3 text-muted-foreground hover:text-foreground"
-                                        >
-                                            <X className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <button
-                                        onClick={() => setIsSearchOpen(true)}
-                                        className="hidden sm:flex items-center justify-center w-10 h-10 rounded-lg hover:bg-secondary transition-colors"
-                                        aria-label="Buscar"
-                                    >
-                                        <Search className="w-5 h-5 text-muted-foreground" />
-                                    </button>
-                                )}
-                            </div>
-
-                            {/* Cart */}
-                            <Link
-                                href="/carrinho"
-                                className="relative flex items-center justify-center w-10 h-10 rounded-lg hover:bg-secondary transition-colors"
-                                aria-label="Carrinho"
-                            >
-                                <ShoppingCart className="w-5 h-5 text-muted-foreground" />
-                                {totalItems > 0 && (
-                                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
-                                        {totalItems > 99 ? "99+" : totalItems}
-                                    </span>
-                                )}
-                            </Link>
-
-                            {/* Admin Button - só mostra para admins */}
-                            {(isAdmin || isAdminAuthenticated) && (
-                                <Link
-                                    href="/admin"
-                                    className={cn(
-                                        "flex items-center justify-center w-10 h-10 rounded-lg transition-colors",
-                                        isAdminAuthenticated
-                                            ? "bg-primary/20 hover:bg-primary/30 text-primary"
-                                            : "hover:bg-secondary text-muted-foreground"
-                                    )}
-                                    aria-label="Painel Admin"
-                                    title="Painel Admin"
-                                >
-                                    <Settings className="w-5 h-5" />
-                                </Link>
-                            )}
-
-                            {/* User Auth */}
+                        {/* Auth / Profile */}
+                        <div className="flex items-center gap-4 ml-2 pl-4 border-l border-white/10">
                             {isLoading ? (
                                 <div className="w-10 h-10 flex items-center justify-center">
-                                    <div className="w-5 h-5 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
+                                    <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                                 </div>
                             ) : user ? (
                                 <UserMenu />
                             ) : (
                                 <button
                                     onClick={() => setIsAuthModalOpen(true)}
-                                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white font-medium transition-colors"
+                                    className="px-6 py-2 rounded-full bg-white/5 border border-white/10 hover:border-white/20 text-sm font-medium transition-all shadow-inner"
                                 >
-                                    <User className="w-4 h-4" />
-                                    <span className="hidden sm:inline">Entrar</span>
+                                    Fazer login
                                 </button>
                             )}
+                        </div>
 
-                            {/* Mobile Menu Toggle */}
-                            <button
-                                className="flex md:hidden items-center justify-center w-10 h-10 rounded-lg hover:bg-secondary transition-colors"
-                                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                                aria-label="Menu"
-                            >
-                                {isMenuOpen ? (
-                                    <X className="w-5 h-5 text-muted-foreground" />
-                                ) : (
-                                    <Menu className="w-5 h-5 text-muted-foreground" />
-                                )}
+                        {/* Extra Controls */}
+                        <div className="hidden md:flex items-center gap-3">
+                            <div className="flex items-center gap-1 cursor-pointer opacity-70 hover:opacity-100 transition-opacity">
+                                <span className="text-xl">🇧🇷</span>
+                                <svg
+                                    className="w-3 h-3 text-muted-foreground"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M19 9l-7 7-7-7"
+                                    />
+                                </svg>
+                            </div>
+                            <button className="w-8 h-8 flex items-center justify-center opacity-70 hover:opacity-100 transition-opacity">
+                                <Moon className="w-4 h-4 text-muted-foreground hover:text-white" />
                             </button>
                         </div>
-                    </div>
 
-                    {/* Mobile Navigation */}
-                    <div
-                        className={cn(
-                            "md:hidden overflow-hidden transition-all duration-300 border-t border-border/40",
-                            isMenuOpen ? "max-h-[400px]" : "max-h-0"
-                        )}
-                    >
-                        <nav className="flex flex-col p-4 gap-4">
-                            {/* Mobile Search */}
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                <input
-                                    type="text"
-                                    placeholder="Buscar produtos..."
-                                    value={searchQuery}
-                                    onChange={(e) => {
-                                        setSearchQuery(e.target.value);
-                                        if (pathname !== "/loja" && e.target.value.length > 0) {
-                                            router.push("/loja");
-                                        }
-                                    }}
-                                    className="w-full pl-10 pr-4 py-2 rounded-xl bg-secondary border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                                />
-                            </div>
-
-                            <div className="flex flex-col gap-2">
-                                {navLinks.map((link) => (
-                                    <Link
-                                        key={link.href}
-                                        href={link.href}
-                                        className="py-2 px-4 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-colors"
-                                        onClick={() => setIsMenuOpen(false)}
-                                    >
-                                        {link.label}
-                                    </Link>
-                                ))}
-                            </div>
-                        </nav>
+                        {/* Mobile Menu */}
+                        <button
+                            className="flex md:hidden items-center justify-center w-10 h-10 rounded-xl bg-white/5 border border-white/10"
+                            onClick={() => setIsMenuOpen(!isMenuOpen)}
+                        >
+                            {isMenuOpen ? (
+                                <X className="w-5 h-5" />
+                            ) : (
+                                <Menu className="w-5 h-5" />
+                            )}
+                        </button>
                     </div>
                 </header>
+
+                {/* Mobile Menu Content */}
+                {isMenuOpen && (
+                    <div className="md:hidden border-t border-white/5 p-4 bg-black/95 animate-in slide-in-from-top duration-300">
+                        <nav className="flex flex-col gap-2">
+                            {navLinks.map((link) => (
+                                <Link
+                                    key={link.href}
+                                    href={link.href}
+                                    className="py-3 px-4 rounded-xl hover:bg-white/5 text-sm transition-colors"
+                                    onClick={() => setIsMenuOpen(false)}
+                                >
+                                    {link.label}
+                                </Link>
+                            ))}
+                        </nav>
+                    </div>
+                )}
             </div>
 
             {/* Auth Modal */}
