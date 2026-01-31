@@ -16,9 +16,16 @@ export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const { addItem } = useCart();
 
-    if (products.length === 0) return null;
+    const currentProduct = products[currentIndex] || products[0];
 
-    const currentProduct = products[currentIndex];
+    // Reset index if it becomes out of bounds due to products changing
+    useEffect(() => {
+        if (currentIndex >= products.length && products.length > 0) {
+            setCurrentIndex(0);
+        }
+    }, [products.length, currentIndex]);
+
+    if (!currentProduct) return null;
 
     const goToPrevious = () => {
         setCurrentIndex((prev) => (prev === 0 ? products.length - 1 : prev - 1));
@@ -50,7 +57,7 @@ export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
             <div className="absolute inset-0">
                 {/* Main Content Layer - Full Width Cover */}
                 <div className="absolute inset-0">
-                    {currentProduct.featuredVideoUrl ? (
+                    {currentProduct?.featuredVideoUrl ? (
                         <video
                             key={currentProduct.id}
                             autoPlay
@@ -61,7 +68,7 @@ export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
                         >
                             <source src={currentProduct.featuredVideoUrl} type="video/mp4" />
                         </video>
-                    ) : (
+                    ) : currentProduct ? (
                         <Image
                             src={currentProduct.featuredImageUrl || currentProduct.imageUrl}
                             alt={currentProduct.name}
@@ -70,7 +77,7 @@ export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
                             priority
                             unoptimized
                         />
-                    )}
+                    ) : null}
                 </div>
                 {/* Gradient Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
@@ -89,12 +96,12 @@ export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
 
                     {/* Title */}
                     <h1 className="text-3xl lg:text-5xl font-bold text-foreground">
-                        {currentProduct.name}
+                        {currentProduct?.name}
                     </h1>
 
                     {/* Price */}
                     <div className="flex items-center gap-4">
-                        {currentProduct.comparePrice > currentProduct.price && (
+                        {currentProduct && currentProduct.comparePrice > currentProduct.price && (
                             <>
                                 <span className="text-xl text-muted-foreground line-through">
                                     {formatCurrency(currentProduct.comparePrice)}
@@ -105,7 +112,7 @@ export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
                             </>
                         )}
                         <span className="text-3xl lg:text-4xl font-bold text-primary">
-                            {formatCurrency(currentProduct.price)}
+                            {currentProduct && formatCurrency(currentProduct.price)}
                         </span>
                     </div>
 
@@ -119,7 +126,7 @@ export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
                             Comprar Agora
                         </button>
                         <Link
-                            href={`/produto/${currentProduct.slug}`}
+                            href={currentProduct ? `/produto/${currentProduct.slug}` : "#"}
                             className="px-6 py-3 rounded-xl border border-border hover:border-primary text-foreground font-semibold transition-colors"
                         >
                             Ver Detalhes
