@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react";
@@ -14,25 +14,11 @@ interface FeaturedCarouselProps {
 
 export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [mounted, setMounted] = useState(false);
     const { addItem } = useCart();
 
-    useEffect(() => {
-        setMounted(true);
-    }, []);
+    if (products.length === 0) return null;
 
-    const currentProduct = products && products.length > 0
-        ? (products[currentIndex] || products[0])
-        : null;
-
-    // Reset index if it becomes out of bounds due to products changing
-    useEffect(() => {
-        if (products && currentIndex >= products.length && products.length > 0) {
-            setCurrentIndex(0);
-        }
-    }, [products?.length, currentIndex]);
-
-    if (!mounted || !currentProduct) return null;
+    const currentProduct = products[currentIndex];
 
     const goToPrevious = () => {
         setCurrentIndex((prev) => (prev === 0 ? products.length - 1 : prev - 1));
@@ -41,17 +27,6 @@ export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
     const goToNext = () => {
         setCurrentIndex((prev) => (prev === products.length - 1 ? 0 : prev + 1));
     };
-
-    // Auto-play effect
-    useEffect(() => {
-        if (products.length <= 1) return;
-
-        const interval = setInterval(() => {
-            goToNext();
-        }, 5000); // Change slide every 5 seconds
-
-        return () => clearInterval(interval);
-    }, [products.length, currentIndex]); // Reset interval whenever index changes or products change
 
     const handleAddToCart = (e: React.MouseEvent) => {
         e.preventDefault();
@@ -64,7 +39,7 @@ export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
             <div className="absolute inset-0">
                 {/* Main Content Layer - Full Width Cover */}
                 <div className="absolute inset-0">
-                    {currentProduct?.featuredVideoUrl ? (
+                    {currentProduct.featuredVideoUrl ? (
                         <video
                             key={currentProduct.id}
                             autoPlay
@@ -75,7 +50,7 @@ export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
                         >
                             <source src={currentProduct.featuredVideoUrl} type="video/mp4" />
                         </video>
-                    ) : currentProduct ? (
+                    ) : (
                         <Image
                             src={currentProduct.featuredImageUrl || currentProduct.imageUrl}
                             alt={currentProduct.name}
@@ -84,7 +59,7 @@ export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
                             priority
                             unoptimized
                         />
-                    ) : null}
+                    )}
                 </div>
                 {/* Gradient Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
@@ -103,12 +78,12 @@ export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
 
                     {/* Title */}
                     <h1 className="text-3xl lg:text-5xl font-bold text-foreground">
-                        {currentProduct?.name}
+                        {currentProduct.name}
                     </h1>
 
                     {/* Price */}
                     <div className="flex items-center gap-4">
-                        {currentProduct && currentProduct.comparePrice > currentProduct.price && (
+                        {currentProduct.comparePrice > currentProduct.price && (
                             <>
                                 <span className="text-xl text-muted-foreground line-through">
                                     {formatCurrency(currentProduct.comparePrice)}
@@ -119,7 +94,7 @@ export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
                             </>
                         )}
                         <span className="text-3xl lg:text-4xl font-bold text-primary">
-                            {currentProduct && formatCurrency(currentProduct.price)}
+                            {formatCurrency(currentProduct.price)}
                         </span>
                     </div>
 
@@ -133,7 +108,7 @@ export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
                             Comprar Agora
                         </button>
                         <Link
-                            href={currentProduct ? `/produto/${currentProduct.slug}` : "#"}
+                            href={`/produto/${currentProduct.slug}`}
                             className="px-6 py-3 rounded-xl border border-border hover:border-primary text-foreground font-semibold transition-colors"
                         >
                             Ver Detalhes

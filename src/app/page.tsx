@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
 import { FeaturedCarousel } from "@/components/products/featured-carousel";
 import { ProductGrid } from "@/components/products/product-grid";
 import { useProducts } from "@/components/admin/products-provider";
@@ -8,17 +7,13 @@ import { useProducts } from "@/components/admin/products-provider";
 export default function HomePage() {
     const { products } = useProducts();
 
-    const featuredProducts = useMemo(() => {
-        return products
-            .filter((p) => p.isFeatured)
-            .sort((a, b) => (a.featuredOrder || 99) - (b.featuredOrder || 99));
-    }, [products]);
+    const featuredProducts = products
+        .filter((p) => p.isFeatured)
+        .sort((a, b) => (a.featuredOrder || 99) - (b.featuredOrder || 99));
 
-    const popularProducts = useMemo(() => {
-        return [...products]
-            .sort((a, b) => b.salesCount - a.salesCount)
-            .slice(0, 10);
-    }, [products]);
+    const popularProducts = [...products]
+        .sort((a, b) => b.salesCount - a.salesCount)
+        .slice(0, 10);
 
     return (
         <>
