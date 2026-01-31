@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react";
@@ -27,6 +27,17 @@ export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
     const goToNext = () => {
         setCurrentIndex((prev) => (prev === products.length - 1 ? 0 : prev + 1));
     };
+
+    // Auto-play effect
+    useEffect(() => {
+        if (products.length <= 1) return;
+
+        const interval = setInterval(() => {
+            goToNext();
+        }, 5000); // Change slide every 5 seconds
+
+        return () => clearInterval(interval);
+    }, [products.length, currentIndex]); // Reset interval whenever index changes or products change
 
     const handleAddToCart = (e: React.MouseEvent) => {
         e.preventDefault();
