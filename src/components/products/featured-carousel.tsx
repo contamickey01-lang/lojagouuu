@@ -16,15 +16,18 @@ interface FeaturedCarouselProps {
 const getProductStats = (product: Product) => {
     const seed = product.id || 1;
 
-    // Deterministic random-ish values
-    const views = Math.floor((seed * 1337) % 500) + 100 + (product.salesCount * 120);
-    const rating = (4.5 + (seed % 5) * 0.1).toFixed(1);
-    const ratingCount = Math.floor((seed * 777) % 8000) + 500;
+    // Deterministic random-ish values (Humanized)
+    const baseViews = Math.floor((seed * 47) % 150) + 40; // Random between 40-190
+    const salesMultiplier = 2 + (seed % 3); // 2-4x multiplier
+    const views = baseViews + (product.salesCount * salesMultiplier);
+
+    const rating = (4.3 + (seed % 7) * 0.1).toFixed(1); // 4.3 to 4.9
+    const ratingCount = Math.floor((seed * 23) % 45) + 8 + Math.floor(product.salesCount * 0.3);
 
     return {
         views: views.toLocaleString('pt-BR'),
         rating,
-        ratingCount: (ratingCount / 1000).toFixed(1) + 'K',
+        ratingCount: ratingCount.toString(), // Removed 'K' for human look
         fullStars: Math.floor(parseFloat(rating)),
         hasHalfStar: parseFloat(rating) % 1 >= 0.5
     };
