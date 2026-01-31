@@ -34,7 +34,7 @@ export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
     };
 
     return (
-        <section className="relative w-full h-[300px] sm:h-[400px] lg:h-[550px] overflow-hidden bg-black">
+        <section className="relative w-full h-[400px] lg:h-[550px] overflow-hidden bg-black">
             {/* Background Image/Video */}
             <div className="absolute inset-0">
                 {/* Main Content Layer - Full Width Cover */}
@@ -67,7 +67,7 @@ export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
             </div>
 
             {/* Content */}
-            <div className="relative z-10 container mx-auto h-full flex items-end lg:items-center px-4 lg:px-8 pb-16 lg:pb-0">
+            <div className="relative z-10 container mx-auto h-full flex items-end lg:items-center px-4 lg:px-8 pt-20 sm:pt-0 pb-16 lg:pb-0">
                 <div className="max-w-xl space-y-6">
                     {/* Category Badge */}
                     {currentProduct.category && (
