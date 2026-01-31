@@ -14,18 +14,25 @@ interface FeaturedCarouselProps {
 
 export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [mounted, setMounted] = useState(false);
     const { addItem } = useCart();
 
-    const currentProduct = products[currentIndex] || products[0];
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    const currentProduct = products && products.length > 0
+        ? (products[currentIndex] || products[0])
+        : null;
 
     // Reset index if it becomes out of bounds due to products changing
     useEffect(() => {
-        if (currentIndex >= products.length && products.length > 0) {
+        if (products && currentIndex >= products.length && products.length > 0) {
             setCurrentIndex(0);
         }
-    }, [products.length, currentIndex]);
+    }, [products?.length, currentIndex]);
 
-    if (!currentProduct) return null;
+    if (!mounted || !currentProduct) return null;
 
     const goToPrevious = () => {
         setCurrentIndex((prev) => (prev === 0 ? products.length - 1 : prev - 1));
