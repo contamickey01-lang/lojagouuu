@@ -35,8 +35,8 @@ export function Header() {
 
     return (
         <>
-            <div className="w-full pt-4 flex justify-center bg-transparent">
-                <header className="w-[95%] max-w-5xl border border-white/10 bg-black/80 backdrop-blur-2xl rounded-2xl shadow-2xl">
+            <div className="w-full pt-6 flex justify-center bg-transparent relative z-50">
+                <header className="w-[95%] max-w-6xl border border-white/10 bg-white/5 backdrop-blur-xl rounded-2xl shadow-xl">
                     <div className="flex h-14 items-center justify-between px-6">
                         {/* Logo */}
                         <Link href="/" className="flex items-center gap-2">
