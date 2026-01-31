@@ -12,6 +12,24 @@ interface FeaturedCarouselProps {
     products: Product[];
 }
 
+// Helper to generate deterministic stats based on product ID
+const getProductStats = (product: Product) => {
+    const seed = product.id || 1;
+
+    // Deterministic random-ish values
+    const views = Math.floor((seed * 1337) % 500) + 100 + (product.salesCount * 120);
+    const rating = (4.5 + (seed % 5) * 0.1).toFixed(1);
+    const ratingCount = Math.floor((seed * 777) % 8000) + 500;
+
+    return {
+        views: views.toLocaleString('pt-BR'),
+        rating,
+        ratingCount: (ratingCount / 1000).toFixed(1) + 'K',
+        fullStars: Math.floor(parseFloat(rating)),
+        hasHalfStar: parseFloat(rating) % 1 >= 0.5
+    };
+};
+
 export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [mounted, setMounted] = useState(false);
@@ -96,97 +114,113 @@ export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
 
                         {/* Content */}
                         <div className="relative z-10 container mx-auto h-full flex items-center px-4 lg:px-8">
-                            <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-12 items-center w-full">
-                                {/* Left: Poster (Desktop Only) */}
-                                <div className="hidden lg:block w-72 h-[420px] relative rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/10 group-hover:scale-[1.02] transition-transform duration-500">
-                                    <Image
-                                        src={product.imageUrl}
-                                        alt={product.name}
-                                        fill
-                                        className="object-cover"
-                                        unoptimized
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                                </div>
+                            {(() => {
+                                const stats = getProductStats(product);
+                                return (
+                                    <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-12 items-center w-full">
+                                        {/* Left: Poster (Desktop Only) */}
+                                        <div className="hidden lg:block w-72 h-[420px] relative rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/10 group-hover:scale-[1.02] transition-transform duration-500">
+                                            <Image
+                                                src={product.imageUrl}
+                                                alt={product.name}
+                                                fill
+                                                className="object-cover"
+                                                unoptimized
+                                            />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                                        </div>
 
-                                {/* Right: Details */}
-                                <div className="max-w-2xl space-y-6">
-                                    <div className="flex flex-wrap items-center gap-3">
-                                        {product.category && (
-                                            <span className="px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-white/80 text-[10px] font-semibold uppercase tracking-widest">
-                                                {product.category.name}
-                                            </span>
-                                        )}
-                                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 text-[10px] font-bold">
-                                            <Star className="w-3 h-3 fill-current" />
-                                            <span>4.8</span>
+                                        {/* Right: Details */}
+                                        <div className="max-w-2xl space-y-6">
+                                            <div className="flex flex-wrap items-center gap-3">
+                                                {product.category && (
+                                                    <span className="px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-white/80 text-[10px] font-semibold uppercase tracking-widest">
+                                                        {product.category.name}
+                                                    </span>
+                                                )}
+                                                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 text-[10px] font-bold">
+                                                    <Star className="w-3 h-3 fill-current" />
+                                                    <span>{stats.rating}</span>
+                                                </div>
+                                            </div>
+
+                                            <h1 className="text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
+                                                {product.name}
+                                            </h1>
+
+                                            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-white/60 text-sm font-medium">
+                                                <div className="flex items-center gap-2">
+                                                    <Eye className="w-4 h-4 text-primary" />
+                                                    <span>{stats.views} visualizações</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <ShoppingCart className="w-4 h-4 text-primary" />
+                                                    <span>{product.salesCount} vendas</span>
+                                                </div>
+                                                <div className="flex items-center gap-1 text-yellow-500">
+                                                    {[...Array(5)].map((_, i) => (
+                                                        <Star
+                                                            key={i}
+                                                            className={cn(
+                                                                "w-3.5 h-3.5",
+                                                                i < stats.fullStars ? "fill-current" : "opacity-30"
+                                                            )}
+                                                        />
+                                                    ))}
+                                                    <span className="ml-1">{stats.ratingCount}</span>
+                                                </div>
+                                            </div>
+
+                                            <p className="text-white/60 line-clamp-2 text-sm max-w-lg leading-relaxed">
+                                                {product.description || "Entrega automática 24/7. Produto original com garantia total e suporte dedicado."}
+                                            </p>
+
+                                            <div className="flex items-end gap-3 pt-2">
+                                                <div className="flex flex-col">
+                                                    {product.comparePrice > product.price && (
+                                                        <span className="text-sm text-white/40 line-through font-medium">
+                                                            {formatCurrency(product.comparePrice)}
+                                                        </span>
+                                                    )}
+                                                    <span className="text-4xl font-black text-white">
+                                                        {formatCurrency(product.price)}
+                                                    </span>
+                                                </div>
+                                                {product.comparePrice > product.price && (
+                                                    <span className="mb-1.5 px-2 py-0.5 rounded-md bg-primary text-[11px] font-black text-white uppercase tracking-tighter shadow-[0_0_15px_rgba(var(--primary),0.3)]">
+                                                        -{product.discount}% OFF
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            <div className="flex flex-wrap items-center gap-4 pt-4">
+                                                <button
+                                                    onClick={(e) => handleAddToCart(e, product)}
+                                                    className="h-12 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-white font-bold transition-all shadow-lg shadow-primary/20 hover:scale-105 active:scale-95"
+                                                >
+                                                    Comprar Agora
+                                                </button>
+                                                <Link
+                                                    href={`/produto/${product.slug}`}
+                                                    className="h-12 px-8 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold transition-all hover:scale-105 active:scale-95 flex items-center justify-center backdrop-blur-sm"
+                                                >
+                                                    Ver Detalhes
+                                                </Link>
+                                            </div>
+
+                                            <div className="text-[10px] font-bold text-white/40 flex items-center gap-2 uppercase tracking-widest">
+                                                <div className={cn(
+                                                    "w-1.5 h-1.5 rounded-full animate-pulse",
+                                                    product.stock > 0 ? "bg-green-500" : "bg-red-500"
+                                                )} />
+                                                {product.stock > 0
+                                                    ? `${product.stock} unidades disponíveis em estoque`
+                                                    : "Produto esgotado no momento"}
+                                            </div>
                                         </div>
                                     </div>
-
-                                    <h1 className="text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
-                                        {product.name}
-                                    </h1>
-
-                                    <div className="flex items-center gap-6 text-white/60 text-sm font-medium">
-                                        <div className="flex items-center gap-2">
-                                            <Eye className="w-4 h-4 text-primary" />
-                                            <span>278.000 visualizações</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <ShoppingCart className="w-4 h-4 text-primary" />
-                                            <span>219 vendas</span>
-                                        </div>
-                                        <div className="flex items-center gap-1 text-yellow-500">
-                                            {[...Array(5)].map((_, i) => (
-                                                <Star key={i} className={cn("w-3.5 h-3.5 fill-current", i === 4 && "opacity-30")} />
-                                            ))}
-                                            <span className="ml-1">4.5K</span>
-                                        </div>
-                                    </div>
-
-                                    <p className="text-white/60 line-clamp-2 text-sm max-w-lg leading-relaxed">
-                                        {product.description || "Entrega automática 24/7. Produto original com garantia total e suporte dedicado."}
-                                    </p>
-
-                                    <div className="flex items-end gap-3 pt-2">
-                                        <div className="flex flex-col">
-                                            {product.comparePrice > product.price && (
-                                                <span className="text-sm text-white/40 line-through font-medium">
-                                                    {formatCurrency(product.comparePrice)}
-                                                </span>
-                                            )}
-                                            <span className="text-4xl font-black text-white">
-                                                {formatCurrency(product.price)}
-                                            </span>
-                                        </div>
-                                        {product.comparePrice > product.price && (
-                                            <span className="mb-1.5 px-2 py-0.5 rounded-md bg-primary text-[11px] font-black text-white uppercase tracking-tighter">
-                                                -{product.discount}% OFF
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    <div className="flex flex-wrap items-center gap-4 pt-4">
-                                        <button
-                                            onClick={(e) => handleAddToCart(e, product)}
-                                            className="h-12 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-white font-bold transition-all shadow-lg shadow-primary/20 hover:scale-105 active:scale-95"
-                                        >
-                                            Comprar Agora
-                                        </button>
-                                        <Link
-                                            href={`/produto/${product.slug}`}
-                                            className="h-12 px-8 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold transition-all hover:scale-105 active:scale-95 flex items-center justify-center"
-                                        >
-                                            Ver Detalhes
-                                        </Link>
-                                    </div>
-
-                                    <div className="text-[10px] font-bold text-white/40 flex items-center gap-2 uppercase tracking-widest">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                                        72 unidades disponíveis em estoque
-                                    </div>
-                                </div>
-                            </div>
+                                );
+                            })()}
                         </div>
                     </div>
                 ))}
