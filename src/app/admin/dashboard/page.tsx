@@ -72,7 +72,7 @@ export default function AdminDashboardPage() {
     };
 
     return (
-        <div className="min-h-screen px-4 sm:px-6 lg:px-10 py-8">
+        <div className="min-h-screen px-4 sm:px-6 lg:px-10 pt-24 pb-8">
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">

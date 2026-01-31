@@ -16,7 +16,7 @@ export default function LojaPage() {
     });
 
     return (
-        <div className="min-h-screen px-4 sm:px-6 lg:px-10 py-8 lg:py-12">
+        <div className="min-h-screen px-4 sm:px-6 lg:px-10 pt-24 pb-8 lg:pb-12">
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="mb-8">

@@ -70,7 +70,7 @@ export default function ProductPage() {
 
     return (
         <>
-            <div className="min-h-screen">
+            <div className="min-h-screen pt-24">
                 {/* Breadcrumb */}
                 <div className="px-4 sm:px-6 lg:px-10 py-4 border-b border-border">
                     <Link
