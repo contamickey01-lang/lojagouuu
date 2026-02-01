@@ -37,22 +37,15 @@ export function Header() {
         <>
             <div className="w-full bg-black/95 backdrop-blur-md border-b border-white/5 z-50">
                 <header className="max-w-[1400px] mx-auto h-16 flex items-center justify-between px-4 lg:px-6">
-                    {/* Left: Search Bar */}
-                    <div className="flex items-center gap-4 flex-1 max-w-xl">
-                        <div className="relative w-full group">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                            <input
-                                type="text"
-                                placeholder="Busque por jogos, categorias ou posts"
-                                value={searchQuery}
-                                onChange={(e) => {
-                                    setSearchQuery(e.target.value);
-                                    if (pathname !== "/loja" && e.target.value.length > 0) {
-                                        router.push("/loja");
-                                    }
-                                }}
-                                className="w-full h-10 pl-10 pr-4 rounded-xl bg-white/5 border border-white/10 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/50 focus:bg-white/10 transition-all"
-                            />
+                    {/* Left: Search & Social */}
+                    <div className="flex items-center gap-2">
+                        <div
+                            className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors cursor-pointer text-muted-foreground hover:text-white"
+                            onClick={() => {
+                                if (pathname !== "/loja") router.push("/loja");
+                            }}
+                        >
+                            <Search className="w-5 h-5" />
                         </div>
 
                         {/* Social/Community Link */}
@@ -60,6 +53,22 @@ export function Header() {
                             <MessageCircle className="w-5 h-5" />
                         </div>
                     </div>
+
+                    {/* Center: Navigation Links */}
+                    <nav className="hidden md:flex items-center gap-8">
+                        {navLinks.map((link) => (
+                            <Link
+                                key={link.href}
+                                href={link.href}
+                                className={cn(
+                                    "text-sm font-bold transition-all hover:text-primary tracking-wide uppercase",
+                                    pathname === link.href ? "text-white" : "text-muted-foreground"
+                                )}
+                            >
+                                {link.label}
+                            </Link>
+                        ))}
+                    </nav>
 
                     {/* Right: Actions */}
                     <div className="flex items-center gap-3">
