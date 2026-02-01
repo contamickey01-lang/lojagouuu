@@ -39,14 +39,43 @@ export function Header() {
                 <header className="max-w-[1400px] mx-auto h-16 flex items-center justify-between px-4 lg:px-6">
                     {/* Left: Search & Social */}
                     <div className="flex items-center gap-2">
-                        <div
-                            className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors cursor-pointer text-muted-foreground hover:text-white"
-                            onClick={() => {
-                                if (pathname !== "/loja") router.push("/loja");
-                            }}
-                        >
-                            <Search className="w-5 h-5" />
-                        </div>
+                        {isSearchOpen ? (
+                            <div className="relative flex items-center animate-in fade-in slide-in-from-left-2 duration-300">
+                                <Search className="absolute left-3 w-4 h-4 text-muted-foreground" />
+                                <input
+                                    autoFocus
+                                    type="text"
+                                    placeholder="Buscar..."
+                                    value={searchQuery}
+                                    onChange={(e) => {
+                                        setSearchQuery(e.target.value);
+                                        if (pathname !== "/loja" && e.target.value.length > 0) {
+                                            router.push("/loja");
+                                        }
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Escape") setIsSearchOpen(false);
+                                    }}
+                                    className="w-48 lg:w-64 h-10 pl-9 pr-8 rounded-xl bg-white/5 border border-white/10 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/50 focus:bg-white/10 transition-all"
+                                />
+                                <button
+                                    onClick={() => {
+                                        setIsSearchOpen(false);
+                                        setSearchQuery("");
+                                    }}
+                                    className="absolute right-3 text-muted-foreground hover:text-white transition-colors"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+                        ) : (
+                            <div
+                                className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors cursor-pointer text-muted-foreground hover:text-white"
+                                onClick={() => setIsSearchOpen(true)}
+                            >
+                                <Search className="w-5 h-5" />
+                            </div>
+                        )}
 
                         {/* Social/Community Link */}
                         <div className="hidden sm:flex items-center justify-center w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors cursor-pointer text-muted-foreground hover:text-white">
