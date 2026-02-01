@@ -94,28 +94,6 @@ export function Header() {
                             )}
                         </div>
 
-                        {/* Extra Controls */}
-                        <div className="hidden md:flex items-center gap-3">
-                            <div className="flex items-center gap-1 cursor-pointer opacity-70 hover:opacity-100 transition-opacity">
-                                <span className="text-xl">🇧🇷</span>
-                                <svg
-                                    className="w-3 h-3 text-muted-foreground"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M19 9l-7 7-7-7"
-                                    />
-                                </svg>
-                            </div>
-                            <button className="w-8 h-8 flex items-center justify-center opacity-70 hover:opacity-100 transition-opacity">
-                                <Moon className="w-4 h-4 text-muted-foreground hover:text-white" />
-                            </button>
-                        </div>
 
                         {/* Mobile Menu */}
                         <button
