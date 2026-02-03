@@ -6,7 +6,7 @@ import { useAuth } from "./auth-provider";
 import Link from "next/link";
 
 // Emails autorizados como admin (mesma lógica do Header)
-const ADMIN_EMAILS = ["admin@goupay.me", "gou@goupay.me"];
+const ADMIN_EMAILS = ["admin@goupay.me", "gou@goupay.me", "admin@gourp.com"];
 
 export function UserMenu() {
     const { user, signOut } = useAuth();

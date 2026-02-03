@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { useRouter, usePathname } from "next/navigation";
 
 // Emails autorizados como admin
-const ADMIN_EMAILS = ["admin@goupay.me", "gou@goupay.me"];
+const ADMIN_EMAILS = ["admin@goupay.me", "gou@goupay.me", "admin@gourp.com"];
 
 export function Header() {
     const { totalItems } = useCart();
