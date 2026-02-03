@@ -22,13 +22,11 @@ function convertP12toPem(p12Base64: string): { cert: string; key: string } | nul
         // Remover sujeira do base64
         const cleanBase64 = p12Base64.trim().replace(/\s/g, "").replace(/['"]/g, "");
 
-        // Usar Buffer do Node para decodificar, é mais robusto
-        const p12Buffer = Buffer.from(cleanBase64, 'base64');
-        const p12Der = p12Buffer.toString('binary');
+        // Decodificar base64 para binário nativo do forge
+        const p12Der = forge.util.decode64(cleanBase64);
         const p12Asn1 = forge.asn1.fromDer(p12Der);
 
         // Efí P12 geralmente não tem senha ('')
-        // Se falhar aqui, o catch vai capturar o motivo exato
         const p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, '');
 
         // Extrair certificado
@@ -36,16 +34,31 @@ function convertP12toPem(p12Base64: string): { cert: string; key: string } | nul
         const certBag = certBags[forge.pki.oids.certBag]?.[0];
 
         if (!certBag || !certBag.cert) {
-            throw new Error("Certificado não encontrado no P12");
+            throw new Error("Certificado não encontrado no P12. Verifique se o arquivo está correto.");
         }
-        const certPem = forge.pki.certificateToPem(certBag.cert);
+
+        const cert = certBag.cert;
+        const certPem = forge.pki.certificateToPem(cert);
+
+        // Diagnóstico de ambiente (Sandbox vs Produção)
+        try {
+            const commonName = cert.subject.getField('CN')?.value || 'desconhecido';
+            console.log(`[Efí] Certificado identificado para: ${commonName}`);
+            if (commonName.toLowerCase().includes('sandbox')) {
+                console.log("[Efí] DICA: Este parece ser um certificado de SANDBOX.");
+            } else {
+                console.log("[Efí] DICA: Este parece ser um certificado de PRODUÇÃO.");
+            }
+        } catch (e) {
+            console.log("[Efí] Não foi possível identificar o ambiente no certificado.");
+        }
 
         // Extrair chave privada
         const keyBags = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
         const keyBag = keyBags[forge.pki.oids.pkcs8ShroudedKeyBag]?.[0];
 
         if (!keyBag || !keyBag.key) {
-            throw new Error("Chave privada não encontrada no P12");
+            throw new Error("Chave privada não encontrada no P12. Verifique se o arquivo está completo.");
         }
         const keyPem = forge.pki.privateKeyToPem(keyBag.key);
 
@@ -57,7 +70,6 @@ function convertP12toPem(p12Base64: string): { cert: string; key: string } | nul
         };
     } catch (error: any) {
         console.error("[Efí] ERRO CRÍTICO NA CONVERSÃO DO CERTIFICADO:", error.message || error);
-        if (error.stack) console.error(error.stack);
         return null;
     }
 }
