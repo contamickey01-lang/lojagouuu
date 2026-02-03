@@ -17,32 +17,47 @@ interface EfiAuth {
  */
 function convertP12toPem(p12Base64: string): { cert: string; key: string } | null {
     try {
+        console.log("[Efí] Iniciando conversão do certificado (P12 -> PEM)...");
+
         // Remover sujeira do base64
         const cleanBase64 = p12Base64.trim().replace(/\s/g, "").replace(/['"]/g, "");
-        const p12Der = forge.util.decode64(cleanBase64);
+
+        // Usar Buffer do Node para decodificar, é mais robusto
+        const p12Buffer = Buffer.from(cleanBase64, 'base64');
+        const p12Der = p12Buffer.toString('binary');
         const p12Asn1 = forge.asn1.fromDer(p12Der);
 
-        // Efí P12 geralmente não tem senha
+        // Efí P12 geralmente não tem senha ('')
+        // Se falhar aqui, o catch vai capturar o motivo exato
         const p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, '');
 
         // Extrair certificado
         const certBags = p12.getBags({ bagType: forge.pki.oids.certBag });
-        const cert = certBags[forge.pki.oids.certBag]![0].cert;
-        if (!cert) throw new Error("Certificado não encontrado no P12");
-        const certPem = forge.pki.certificateToPem(cert!);
+        const certBag = certBags[forge.pki.oids.certBag]?.[0];
+
+        if (!certBag || !certBag.cert) {
+            throw new Error("Certificado não encontrado no P12");
+        }
+        const certPem = forge.pki.certificateToPem(certBag.cert);
 
         // Extrair chave privada
         const keyBags = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
-        const key = keyBags[forge.pki.oids.pkcs8ShroudedKeyBag]![0].key;
-        if (!key) throw new Error("Chave privada não encontrada no P12");
-        const keyPem = forge.pki.privateKeyToPem(key!);
+        const keyBag = keyBags[forge.pki.oids.pkcs8ShroudedKeyBag]?.[0];
+
+        if (!keyBag || !keyBag.key) {
+            throw new Error("Chave privada não encontrada no P12");
+        }
+        const keyPem = forge.pki.privateKeyToPem(keyBag.key);
+
+        console.log("[Efí] Conversão PEM realizada com sucesso.");
 
         return {
             cert: Buffer.from(certPem).toString('base64'),
             key: Buffer.from(keyPem).toString('base64')
         };
-    } catch (error) {
-        console.error("[Efí] Erro ao converter P12 para PEM:", error);
+    } catch (error: any) {
+        console.error("[Efí] ERRO CRÍTICO NA CONVERSÃO DO CERTIFICADO:", error.message || error);
+        if (error.stack) console.error(error.stack);
         return null;
     }
 }
