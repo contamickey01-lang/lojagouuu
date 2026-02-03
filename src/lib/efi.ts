@@ -31,7 +31,8 @@ function convertP12toPem(p12Base64: string): { cert: string; key: string; error?
 
         let p12;
         try {
-            p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, '');
+            const password = process.env.EFI_CERT_PASSWORD || '';
+            p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, password);
         } catch (e: any) {
             return { cert: "", key: "", error: `[DEBUG-V4] Senha/Arquivo P12 inválido: ${e.message}` };
         }
