@@ -1,8 +1,12 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { LogOut, User, ChevronDown } from "lucide-react";
+import { LogOut, User, ChevronDown, Settings } from "lucide-react";
 import { useAuth } from "./auth-provider";
+import Link from "next/link";
+
+// Emails autorizados como admin (mesma lógica do Header)
+const ADMIN_EMAILS = ["admin@goupay.me", "gou@goupay.me"];
 
 export function UserMenu() {
     const { user, signOut } = useAuth();
@@ -58,7 +62,18 @@ export function UserMenu() {
                         <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                     </div>
 
-                    <div className="p-2">
+                    <div className="p-2 space-y-1">
+                        {user && ADMIN_EMAILS.includes(user.email || "") && (
+                            <Link
+                                href="/admin/dashboard"
+                                onClick={() => setIsOpen(false)}
+                                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-primary hover:bg-primary/10 transition-colors font-medium"
+                            >
+                                <Settings className="w-4 h-4" />
+                                Ir para o Painel
+                            </Link>
+                        )}
+
                         <button
                             onClick={() => {
                                 signOut();
