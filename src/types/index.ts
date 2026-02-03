@@ -37,16 +37,19 @@ export interface CartItem {
 
 export interface Order {
     id: string;
-    customerEmail: string;
+    payment_id: string;
+    user_id?: string;
+    user_email: string;
     status: "pending" | "paid" | "delivered" | "cancelled";
+    payment_status: string;
+    payment_method: string;
     total: number;
     items: OrderItem[];
-    createdAt: string;
+    created_at: string;
+    paid_at?: string;
 }
 
 export interface OrderItem {
-    productId: number;
-    productName: string;
+    id: number;
     quantity: number;
-    price: number;
 }

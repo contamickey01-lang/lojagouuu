@@ -16,18 +16,35 @@ import {
     Database,
     Upload,
     Loader2,
+    History,
+    TrendingUp,
+    CheckCircle2,
+    Clock,
+    DollarSign,
+    ShoppingCart,
 } from "lucide-react";
 import { useAdmin } from "@/components/admin/admin-provider";
 import { useProducts } from "@/components/admin/products-provider";
-import { Product, Category, ProductVariant } from "@/types";
-import { formatCurrency, slugify } from "@/lib/utils";
+import { SalesProvider, useSales } from "@/components/admin/sales-provider";
+import { Product, Category, ProductVariant, Order } from "@/types";
+import { formatCurrency, slugify, cn } from "@/lib/utils";
 import { uploadImage } from "@/lib/supabase";
 
 export default function AdminDashboardPage() {
+    return (
+        <SalesProvider>
+            <AdminDashboardContent />
+        </SalesProvider>
+    );
+}
+
+function AdminDashboardContent() {
     const { isAuthenticated, logout } = useAdmin();
     const { products, categories, isLoading, isUsingSupabase, addProduct, updateProduct, deleteProduct } = useProducts();
+    const { orders, isLoading: salesLoading } = useSales();
     const router = useRouter();
 
+    const [activeTab, setActiveTab] = useState<"products" | "sales">("products");
     const [search, setSearch] = useState("");
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -84,7 +101,7 @@ export default function AdminDashboardPage() {
                             Painel Admin
                         </h1>
                         <p className="text-muted-foreground">
-                            Gerencie seus produtos e estoque
+                            {activeTab === "products" ? "Gerencie seus produtos e estoque" : "Acompanhe suas vendas e pedidos"}
                         </p>
                         <div className={`inline-flex items-center gap-1.5 mt-2 px-2 py-1 rounded-md text-xs font-medium ${isUsingSupabase
                             ? "bg-success/10 text-success"
@@ -95,13 +112,15 @@ export default function AdminDashboardPage() {
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
-                        <button
-                            onClick={openAddModal}
-                            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white font-medium transition-colors"
-                        >
-                            <Plus className="w-5 h-5" />
-                            Novo Produto
-                        </button>
+                        {activeTab === "products" && (
+                            <button
+                                onClick={openAddModal}
+                                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white font-medium transition-colors"
+                            >
+                                <Plus className="w-5 h-5" />
+                                Novo Produto
+                            </button>
+                        )}
                         <button
                             onClick={handleLogout}
                             className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
@@ -112,185 +131,219 @@ export default function AdminDashboardPage() {
                     </div>
                 </div>
 
-                {/* Stats */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-                    <div className="p-6 rounded-2xl border border-border bg-card">
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                                <Package className="w-6 h-6 text-primary" />
-                            </div>
-                            <div>
-                                <p className="text-sm text-muted-foreground">Total Produtos</p>
-                                <p className="text-2xl font-bold text-foreground">
-                                    {products.length}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="p-6 rounded-2xl border border-border bg-card">
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center">
-                                <Package className="w-6 h-6 text-success" />
-                            </div>
-                            <div>
-                                <p className="text-sm text-muted-foreground">Em Estoque</p>
-                                <p className="text-2xl font-bold text-foreground">
-                                    {products.filter((p) => p.stock > 0).length}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="p-6 rounded-2xl border border-border bg-card">
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-xl bg-destructive/10 flex items-center justify-center">
-                                <AlertCircle className="w-6 h-6 text-destructive" />
-                            </div>
-                            <div>
-                                <p className="text-sm text-muted-foreground">Sem Estoque</p>
-                                <p className="text-2xl font-bold text-foreground">
-                                    {products.filter((p) => p.stock === 0).length}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
+                {/* Tabs */}
+                <div className="flex gap-1 p-1 bg-secondary/50 rounded-2xl w-fit mb-8 border border-border">
+                    <button
+                        onClick={() => setActiveTab("products")}
+                        className={cn(
+                            "px-6 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center gap-2",
+                            activeTab === "products"
+                                ? "bg-background text-primary shadow-sm"
+                                : "text-muted-foreground hover:text-foreground"
+                        )}
+                    >
+                        <Package className="w-4 h-4" />
+                        Produtos
+                    </button>
+                    <button
+                        onClick={() => setActiveTab("sales")}
+                        className={cn(
+                            "px-6 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center gap-2",
+                            activeTab === "sales"
+                                ? "bg-background text-primary shadow-sm"
+                                : "text-muted-foreground hover:text-foreground"
+                        )}
+                    >
+                        <TrendingUp className="w-4 h-4" />
+                        Vendas
+                    </button>
                 </div>
 
-                {/* Search */}
-                <div className="relative mb-6">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <input
-                        type="text"
-                        placeholder="Buscar produtos..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-12 pr-4 py-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                    />
-                </div>
+                {activeTab === "products" ? (
+                    <>
+                        {/* Stats */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+                            <div className="p-6 rounded-2xl border border-border bg-card">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                                        <Package className="w-6 h-6 text-primary" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">Total Produtos</p>
+                                        <p className="text-2xl font-bold text-foreground">
+                                            {products.length}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="p-6 rounded-2xl border border-border bg-card">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center">
+                                        <Package className="w-6 h-6 text-success" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">Em Estoque</p>
+                                        <p className="text-2xl font-bold text-foreground">
+                                            {products.filter((p) => p.stock > 0).length}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="p-6 rounded-2xl border border-border bg-card">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 rounded-xl bg-destructive/10 flex items-center justify-center">
+                                        <AlertCircle className="w-6 h-6 text-destructive" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">Sem Estoque</p>
+                                        <p className="text-2xl font-bold text-foreground">
+                                            {products.filter((p) => p.stock === 0).length}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
-                {/* Products Table */}
-                <div className="rounded-2xl border border-border bg-card overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead>
-                                <tr className="border-b border-border bg-secondary/50">
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                        Produto
-                                    </th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                        Categoria
-                                    </th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                        Preço
-                                    </th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                        Estoque
-                                    </th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                        Vendas
-                                    </th>
-                                    <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                        Ações
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-border">
-                                {filteredProducts.map((product) => (
-                                    <tr
-                                        key={product.id}
-                                        className="hover:bg-secondary/30 transition-colors"
-                                    >
-                                        <td className="px-4 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-secondary flex-shrink-0">
-                                                    <Image
-                                                        src={product.imageUrl}
-                                                        alt={product.name}
-                                                        fill
-                                                        className="object-cover"
-                                                        unoptimized
-                                                    />
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <p className="font-medium text-foreground truncate max-w-[200px]">
-                                                        {product.name}
-                                                    </p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        ID: {product.id}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-4">
-                                            <span className="text-sm text-muted-foreground">
-                                                {product.category?.name || "—"}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-4">
-                                            <div className="flex flex-col">
-                                                <span className="font-medium text-primary">
-                                                    {formatCurrency(product.price)}
-                                                </span>
-                                                {product.discount > 0 && (
-                                                    <span className="text-xs text-success">
-                                                        -{product.discount}%
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-4">
-                                            <span
-                                                className={`inline-flex px-2 py-1 rounded-lg text-xs font-medium ${product.stock > 10
-                                                    ? "bg-success/10 text-success"
-                                                    : product.stock > 0
-                                                        ? "bg-yellow-500/10 text-yellow-500"
-                                                        : "bg-destructive/10 text-destructive"
-                                                    }`}
+                        {/* Search */}
+                        <div className="relative mb-6">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                            <input
+                                type="text"
+                                placeholder="Buscar produtos..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="w-full pl-12 pr-4 py-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                            />
+                        </div>
+
+                        {/* Products Table */}
+                        <div className="rounded-2xl border border-border bg-card overflow-hidden">
+                            <div className="overflow-x-auto">
+                                <table className="w-full">
+                                    <thead>
+                                        <tr className="border-b border-border bg-secondary/50">
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                                Produto
+                                            </th>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                                Categoria
+                                            </th>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                                Preço
+                                            </th>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                                Estoque
+                                            </th>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                                Vendas
+                                            </th>
+                                            <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                                Ações
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-border">
+                                        {filteredProducts.map((product) => (
+                                            <tr
+                                                key={product.id}
+                                                className="hover:bg-secondary/30 transition-colors"
                                             >
-                                                {product.stock}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-4">
-                                            <span className="text-sm text-muted-foreground">
-                                                {product.salesCount.toLocaleString()}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-4">
-                                            <div className="flex items-center justify-end gap-2">
-                                                <button
-                                                    onClick={() => openEditModal(product)}
-                                                    className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-                                                    title="Editar"
-                                                >
-                                                    <Pencil className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDelete(product.id)}
-                                                    className={`p-2 rounded-lg transition-colors ${deleteConfirm === product.id
-                                                        ? "bg-destructive text-white"
-                                                        : "hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
-                                                        }`}
-                                                    title={
-                                                        deleteConfirm === product.id
-                                                            ? "Clique novamente para confirmar"
-                                                            : "Deletar"
-                                                    }
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                                <td className="px-4 py-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-secondary flex-shrink-0">
+                                                            <Image
+                                                                src={product.imageUrl}
+                                                                alt={product.name}
+                                                                fill
+                                                                className="object-cover"
+                                                                unoptimized
+                                                            />
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <p className="font-medium text-foreground truncate max-w-[200px]">
+                                                                {product.name}
+                                                            </p>
+                                                            <p className="text-xs text-muted-foreground">
+                                                                ID: {product.id}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <span className="text-sm text-muted-foreground">
+                                                        {product.category?.name || "—"}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium text-primary">
+                                                            {formatCurrency(product.price)}
+                                                        </span>
+                                                        {product.discount > 0 && (
+                                                            <span className="text-xs text-success">
+                                                                -{product.discount}%
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <span
+                                                        className={`inline-flex px-2 py-1 rounded-lg text-xs font-medium ${product.stock > 10
+                                                            ? "bg-success/10 text-success"
+                                                            : product.stock > 0
+                                                                ? "bg-yellow-500/10 text-yellow-500"
+                                                                : "bg-destructive/10 text-destructive"
+                                                            }`}
+                                                    >
+                                                        {product.stock}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <span className="text-sm text-muted-foreground">
+                                                        {product.salesCount.toLocaleString()}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <button
+                                                            onClick={() => openEditModal(product)}
+                                                            className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+                                                            title="Editar"
+                                                        >
+                                                            <Pencil className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDelete(product.id)}
+                                                            className={`p-2 rounded-lg transition-colors ${deleteConfirm === product.id
+                                                                ? "bg-destructive text-white"
+                                                                : "hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                                                                }`}
+                                                            title={
+                                                                deleteConfirm === product.id
+                                                                    ? "Clique novamente para confirmar"
+                                                                    : "Deletar"
+                                                            }
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
 
-                    {filteredProducts.length === 0 && (
-                        <div className="py-12 text-center text-muted-foreground">
-                            Nenhum produto encontrado.
+                            {filteredProducts.length === 0 && (
+                                <div className="py-12 text-center text-muted-foreground">
+                                    Nenhum produto encontrado.
+                                </div>
+                            )}
                         </div>
-                    )}
-                </div>
+                    </>
+                ) : (
+                    <SalesView orders={orders} products={products} isLoading={salesLoading} />
+                )}
             </div>
 
             {/* Product Modal */}
@@ -309,6 +362,172 @@ export default function AdminDashboardPage() {
                     onClose={() => setIsModalOpen(false)}
                 />
             )}
+        </div>
+    );
+}
+
+// Sales View Component
+interface SalesViewProps {
+    orders: Order[];
+    products: Product[];
+    isLoading: boolean;
+}
+
+function SalesView({ orders, products, isLoading }: SalesViewProps) {
+    if (isLoading) {
+        return (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+                <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                <p className="text-muted-foreground font-medium">Carregando vendas...</p>
+            </div>
+        );
+    }
+
+    if (orders.length === 0) {
+        return (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mb-4">
+                    <History className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">Nenhuma venda ainda</h3>
+                <p className="text-muted-foreground max-w-xs mx-auto mt-1">
+                    As vendas aparecerão aqui quando os clientes começarem a comprar seus produtos.
+                </p>
+            </div>
+        );
+    }
+
+    const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
+    const paidOrders = orders.filter(o => o.status === "paid").length;
+
+    return (
+        <div className="space-y-8 animate-in fade-in duration-500">
+            {/* Sales Stats */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-6 rounded-2xl border border-border bg-card">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                            <DollarSign className="w-6 h-6 text-primary" />
+                        </div>
+                        <div>
+                            <p className="text-sm text-muted-foreground">Receita Total</p>
+                            <p className="text-2xl font-bold text-foreground">
+                                {formatCurrency(totalRevenue)}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div className="p-6 rounded-2xl border border-border bg-card">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center">
+                            <CheckCircle2 className="w-6 h-6 text-success" />
+                        </div>
+                        <div>
+                            <p className="text-sm text-muted-foreground">Pedidos Pagos</p>
+                            <p className="text-2xl font-bold text-foreground">{paidOrders}</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="p-6 rounded-2xl border border-border bg-card">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
+                            <ShoppingCart className="w-6 h-6 text-muted-foreground" />
+                        </div>
+                        <div>
+                            <p className="text-sm text-muted-foreground">Total Pedidos</p>
+                            <p className="text-2xl font-bold text-foreground">{orders.length}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Orders Table */}
+            <div className="rounded-2xl border border-border bg-card overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full">
+                        <thead>
+                            <tr className="border-b border-border bg-secondary/50">
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                    Pedido ID
+                                </th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                    Cliente
+                                </th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                    Produtos
+                                </th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                    Total
+                                </th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                    Status
+                                </th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                    Data
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                            {orders.map((order) => (
+                                <tr key={order.id} className="hover:bg-secondary/30 transition-colors">
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <span className="font-mono text-xs font-medium text-muted-foreground">
+                                            #{order.id.substring(0, 8)}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <span className="text-sm font-medium text-foreground">
+                                            {order.user_email}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex flex-col gap-0.5">
+                                            {order.items.map((item, idx) => {
+                                                const product = products.find(p => p.id === item.id);
+                                                return (
+                                                    <span key={idx} className="text-xs text-muted-foreground">
+                                                        {item.quantity}x {product?.name || `Produto #${item.id}`}
+                                                    </span>
+                                                );
+                                            })}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <span className="text-sm font-bold text-primary">
+                                            {formatCurrency(order.total)}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <span className={cn(
+                                            "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold",
+                                            order.status === "paid"
+                                                ? "bg-success/10 text-success"
+                                                : order.status === "pending"
+                                                    ? "bg-yellow-500/10 text-yellow-500"
+                                                    : "bg-destructive/10 text-destructive"
+                                        )}>
+                                            {order.status === "paid" && <CheckCircle2 className="w-3 h-3" />}
+                                            {order.status === "pending" && <Clock className="w-3 h-3" />}
+                                            {order.status === "paid" ? "Pago" : order.status === "pending" ? "Pendente" : order.status}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <span className="text-xs text-muted-foreground">
+                                            {new Date(order.created_at).toLocaleDateString("pt-BR", {
+                                                day: "2-digit",
+                                                month: "2-digit",
+                                                year: "2-digit",
+                                                hour: "2-digit",
+                                                minute: "2-digit"
+                                            })}
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     );
 }
