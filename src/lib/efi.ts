@@ -18,16 +18,31 @@ function convertP12toPem(p12Base64: string): { cert: string; key: string; error?
     try {
         console.log("[Efí] [DEBUG-V4] Iniciando conversão...");
 
-        // Limpeza rigorosa
-        const cleanBase64 = p12Base64.replace(/[^A-Za-z0-9+/=]/g, "");
+        // Limpeza: remove espaços e aceita caracteres de Base64 padrão e URL-safe
+        const cleanBase64 = p12Base64.trim().replace(/[^A-Za-z0-9+/=_~-]/g, "");
+
+        console.log(`[Efí] [DEBUG-V4] Tamanho do Base64 recebido: ${p12Base64.length}`);
+        console.log(`[Efí] [DEBUG-V4] Tamanho após limpeza: ${cleanBase64.length}`);
 
         if (cleanBase64.length < 100) {
             return { cert: "", key: "", error: `[DEBUG-V4] Base64 muito curto (${cleanBase64.length} chars).` };
         }
 
-        const p12Buffer = Buffer.from(cleanBase64, 'base64');
-        const p12Der = p12Buffer.toString('binary');
-        const p12Asn1 = forge.asn1.fromDer(p12Der);
+        // Decodificar usando utilitário nativo do forge para maior compatibilidade
+        let p12Der;
+        try {
+            p12Der = forge.util.decode64(cleanBase64);
+            console.log(`[Efí] [DEBUG-V4] Tamanho do DER decodificado: ${p12Der.length} bytes`);
+        } catch (e: any) {
+            return { cert: "", key: "", error: `[DEBUG-V4] Erro na decodificação Base64: ${e.message}` };
+        }
+
+        let p12Asn1;
+        try {
+            p12Asn1 = forge.asn1.fromDer(p12Der);
+        } catch (e: any) {
+            return { cert: "", key: "", error: `[DEBUG-V4] Erro ao processar estrutura ASN1 (DER): ${e.message}. Isso geralmente indica que o código Base64 está incompleto.` };
+        }
 
         let p12;
         try {
@@ -59,7 +74,7 @@ function convertP12toPem(p12Base64: string): { cert: string; key: string; error?
             key: Buffer.from(keyPem).toString('base64')
         };
     } catch (error: any) {
-        return { cert: "", key: "", error: `[DEBUG-V4] Falha técnica: ${error.message}` };
+        return { cert: "", key: "", error: `[DEBUG-V4] Falha técnica imprevista: ${error.message}` };
     }
 }
 
