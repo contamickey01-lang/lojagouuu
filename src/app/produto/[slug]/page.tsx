@@ -95,6 +95,7 @@ export default function ProductPage() {
                                     className="object-cover"
                                     priority
                                     quality={100}
+                                    unoptimized
                                 />
                                 {product.discount > 0 && (
                                     <div className="absolute top-4 left-4">

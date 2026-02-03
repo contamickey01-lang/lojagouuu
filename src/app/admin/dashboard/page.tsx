@@ -207,6 +207,7 @@ export default function AdminDashboardPage() {
                                                         alt={product.name}
                                                         fill
                                                         className="object-cover"
+                                                        unoptimized
                                                     />
                                                 </div>
                                                 <div className="min-w-0">
