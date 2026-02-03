@@ -22,7 +22,12 @@ export function getEfiClient() {
         throw new Error("[Efí] Credenciais (ID/Secret) não encontradas.");
     }
 
-    const isSandbox = process.env.EFI_SANDBOX !== "false";
+    const sandboxVar = String(process.env.EFI_SANDBOX || "true").toLowerCase().trim();
+    const isSandbox = sandboxVar !== "false";
+
+    console.log(`[Efí] DEBUG: EFI_SANDBOX config: "${process.env.EFI_SANDBOX}" -> Result: ${isSandbox ? 'SANDBOX' : 'PRODUÇÃO'}`);
+    console.log(`[Efí] DEBUG: EFI_CERT_PEM present: ${!!certPem}`);
+    console.log(`[Efí] DEBUG: EFI_KEY_PEM present: ${!!keyPem}`);
 
     // Configuração base
     const options: any = {
