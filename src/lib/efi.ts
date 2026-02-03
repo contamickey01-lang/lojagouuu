@@ -1,117 +1,48 @@
 import EfiPay from "sdk-node-apis-efi";
-import * as forge from 'node-forge';
 
 /**
  * Efí Bank utility to handle PIX payments
+ * Updated: Passing P12 Base64 directly to the SDK to avoid ASN1 parsing errors.
  */
-
-interface EfiAuth {
-    certificate: string;
-    pemKey?: string;
-    cert_base64: boolean;
-}
-
-/**
- * Converts a P12 Base64 string into PEM components (Cert and Key)
- */
-function convertP12toPem(p12Base64: string): { cert: string; key: string; error?: string } {
-    try {
-        console.log("[Efí] [DEBUG-V4] Iniciando conversão...");
-
-        let rawBase64 = p12Base64.trim();
-
-        // Se o usuário colou com o prefixo "data:application/x-pkcs12;base64,"
-        if (rawBase64.includes(",")) {
-            rawBase64 = rawBase64.split(",")[1];
-        }
-
-        // Limpeza rigorosa: remove TUDO que não for Base64 válido (+ / = e letras/números)
-        const cleanBase64 = rawBase64.replace(/[^A-Za-z0-9+/=]/g, "");
-
-        console.log(`[Efí] [DEBUG-V4] Tamanho original: ${p12Base64.length}`);
-        console.log(`[Efí] [DEBUG-V4] Tamanho limpo: ${cleanBase64.length}`);
-        console.log(`[Efí] [DEBUG-V4] Primeiros 10: ${cleanBase64.substring(0, 10)}...`);
-        console.log(`[Efí] [DEBUG-V4] Últimos 10: ...${cleanBase64.substring(Math.max(0, cleanBase64.length - 10))}`);
-
-        if (cleanBase64.length < 100) {
-            return { cert: "", key: "", error: `[DEBUG-V4] Base64 inválido ou muito curto (${cleanBase64.length} chars).` };
-        }
-
-        // Decodificar usando Buffer (nativo do Node, mais estável para binários)
-        const p12Buffer = Buffer.from(cleanBase64, 'base64');
-        const p12Der = p12Buffer.toString('binary');
-
-        console.log(`[Efí] [DEBUG-V4] Bytes decodificados: ${p12Der.length}`);
-
-        let p12Asn1;
-        try {
-            p12Asn1 = forge.asn1.fromDer(p12Der);
-        } catch (e: any) {
-            return { cert: "", key: "", error: `[DEBUG-V4] Erro na estrutura ASN1 (DER): ${e.message}. Verifique se copiou o código completo.` };
-        }
-
-        let p12;
-        try {
-            const password = process.env.EFI_CERT_PASSWORD || '';
-            p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, password);
-        } catch (e: any) {
-            return { cert: "", key: "", error: `[DEBUG-V4] Senha ou Arquivo P12 inválido: ${e.message}` };
-        }
-
-        const certBags = p12.getBags({ bagType: forge.pki.oids.certBag });
-        const certBag = certBags[forge.pki.oids.certBag]?.[0];
-
-        if (!certBag || !certBag.cert) {
-            return { cert: "", key: "", error: "[DEBUG-V4] Certificado não encontrado no P12." };
-        }
-
-        const certPem = forge.pki.certificateToPem(certBag.cert);
-
-        const keyBags = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
-        const keyBag = keyBags[forge.pki.oids.pkcs8ShroudedKeyBag]?.[0];
-
-        if (!keyBag || !keyBag.key) {
-            return { cert: "", key: "", error: "[DEBUG-V4] Chave privada não encontrada no P12." };
-        }
-        const keyPem = forge.pki.privateKeyToPem(keyBag.key);
-
-        console.log("[Efí] [DEBUG-V4] Sucesso na conversão PEM.");
-
-        return {
-            cert: Buffer.from(certPem).toString('base64'),
-            key: Buffer.from(keyPem).toString('base64')
-        };
-    } catch (error: any) {
-        return { cert: "", key: "", error: `[DEBUG-V4] Falha técnica imprevista: ${error.message}` };
-    }
-}
 
 /**
  * Returns an initialized Efí SDK instance
  */
 export function getEfiClient() {
     const certBase64 = process.env.EFI_CERT_BASE64;
+    const clientId = process.env.EFI_CLIENT_ID;
+    const clientSecret = process.env.EFI_CLIENT_SECRET;
 
     if (!certBase64) {
-        throw new Error("Variável EFI_CERT_BASE64 não encontrada no Vercel.");
+        throw new Error("[Efí] Variável EFI_CERT_BASE64 não encontrada.");
     }
 
-    const { cert, key, error } = convertP12toPem(certBase64);
-
-    if (error) {
-        throw new Error(error);
+    if (!clientId || !clientSecret) {
+        throw new Error("[Efí] Variáveis EFI_CLIENT_ID ou EFI_CLIENT_SECRET não encontradas.");
     }
 
+    // Limpeza básica: remove espaços e prefixos comuns
+    let cleanBase64 = certBase64.trim();
+    if (cleanBase64.includes(",")) {
+        cleanBase64 = cleanBase64.split(",")[1];
+    }
+    cleanBase64 = cleanBase64.replace(/\s/g, "");
+
+    // O SDK da Efí aceita o P12 em Base64 diretamente se 'cert_base64' for true
     const options = {
         sandbox: process.env.EFI_SANDBOX !== "false",
-        client_id: process.env.EFI_CLIENT_ID || "",
-        client_secret: process.env.EFI_CLIENT_SECRET || "",
-        certificate: cert,
-        pemKey: key,
+        client_id: clientId,
+        client_secret: clientSecret,
+        certificate: cleanBase64,
         cert_base64: true
     };
 
-    return new EfiPay(options);
+    try {
+        return new EfiPay(options);
+    } catch (error: any) {
+        console.error("[Efí] Erro ao inicializar SDK:", error.message);
+        throw new Error(`[Efí] Erro na inicialização: ${error.message}`);
+    }
 }
 
 /**
