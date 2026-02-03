@@ -35,7 +35,7 @@ export function Header() {
 
     return (
         <>
-            <div className="w-full bg-black/95 backdrop-blur-md border-b border-white/5 z-50">
+            <div className="w-full bg-black/95 backdrop-blur-md border-b border-white/5 sticky top-0 z-50">
                 <header className="max-w-[1400px] mx-auto h-16 flex items-center justify-between px-4 lg:px-6">
                     {/* Left: Search & Social */}
                     <div className="flex items-center gap-2">
@@ -51,7 +51,7 @@ export function Header() {
                                         router.push("/loja");
                                     }
                                 }}
-                                className="w-48 lg:w-64 h-10 pl-9 pr-8 rounded-xl bg-white/5 border border-white/10 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/50 focus:bg-white/10 transition-all"
+                                className="w-full sm:w-48 lg:w-64 h-10 pl-9 pr-8 rounded-xl bg-white/5 border border-white/10 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/50 focus:bg-white/10 transition-all"
                             />
                             {searchQuery.length > 0 && (
                                 <button

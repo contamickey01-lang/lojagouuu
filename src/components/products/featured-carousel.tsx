@@ -37,6 +37,8 @@ export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [mounted, setMounted] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
+    const [touchStart, setTouchStart] = useState<number | null>(null);
+    const [touchEnd, setTouchEnd] = useState<number | null>(null);
     const { addItem } = useCart();
 
     useEffect(() => {
@@ -69,6 +71,33 @@ export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
         addItem(product);
     };
 
+    // Min distance for swipe to be triggered
+    const minSwipeDistance = 50;
+
+    const onTouchStart = (e: React.TouchEvent) => {
+        setTouchEnd(null);
+        setTouchStart(e.targetTouches[0].clientX);
+        setIsPaused(true);
+    };
+
+    const onTouchMove = (e: React.TouchEvent) => {
+        setTouchEnd(e.targetTouches[0].clientX);
+    };
+
+    const onTouchEnd = () => {
+        setIsPaused(false);
+        if (!touchStart || !touchEnd) return;
+        const distance = touchStart - touchEnd;
+        const isLeftSwipe = distance > minSwipeDistance;
+        const isRightSwipe = distance < -minSwipeDistance;
+
+        if (isLeftSwipe) {
+            goToNext();
+        } else if (isRightSwipe) {
+            goToPrevious();
+        }
+    };
+
     // Only render the interactive part after mounting to prevent hydration errors
     if (!mounted) {
         return <section className="relative w-full h-[400px] lg:h-[550px] bg-black" />;
@@ -76,9 +105,12 @@ export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
 
     return (
         <section
-            className="relative w-full h-[400px] lg:h-[550px] overflow-hidden bg-black"
+            className="relative w-full h-[450px] lg:h-[550px] overflow-hidden bg-black"
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => setIsPaused(false)}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
         >
             {/* Slides Container */}
             <div
@@ -116,7 +148,7 @@ export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
                         </div>
 
                         {/* Content */}
-                        <div className="relative z-10 container mx-auto h-full flex items-center px-4 lg:px-8">
+                        <div className="relative z-10 container mx-auto h-full flex items-center px-4 lg:px-8 mt-12 lg:mt-0">
                             {(() => {
                                 const stats = getProductStats(product);
                                 return (
@@ -147,7 +179,7 @@ export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
                                                 </div>
                                             </div>
 
-                                            <h1 className="text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
+                                            <h1 className="text-3xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
                                                 {product.name}
                                             </h1>
 
