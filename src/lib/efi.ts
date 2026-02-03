@@ -22,6 +22,8 @@ function convertP12toPem(p12Base64: string): { cert: string; key: string; error?
         const cleanBase64 = p12Base64.trim().replace(/[^A-Za-z0-9+/=_~-]/g, "");
 
         console.log(`[Efí] [DEBUG-V4] Tamanho do Base64 recebido: ${p12Base64.length}`);
+        console.log(`[Efí] [DEBUG-V4] Primeiros 10: ${p12Base64.substring(0, 10)}...`);
+        console.log(`[Efí] [DEBUG-V4] Últimos 10: ...${p12Base64.substring(Math.max(0, p12Base64.length - 10))}`);
         console.log(`[Efí] [DEBUG-V4] Tamanho após limpeza: ${cleanBase64.length}`);
 
         if (cleanBase64.length < 100) {
