@@ -18,32 +18,36 @@ function convertP12toPem(p12Base64: string): { cert: string; key: string; error?
     try {
         console.log("[Efí] [DEBUG-V4] Iniciando conversão...");
 
-        // Limpeza: remove espaços e aceita caracteres de Base64 padrão e URL-safe
-        const cleanBase64 = p12Base64.trim().replace(/[^A-Za-z0-9+/=_~-]/g, "");
+        let rawBase64 = p12Base64.trim();
 
-        console.log(`[Efí] [DEBUG-V4] Tamanho do Base64 recebido: ${p12Base64.length}`);
-        console.log(`[Efí] [DEBUG-V4] Primeiros 10: ${p12Base64.substring(0, 10)}...`);
-        console.log(`[Efí] [DEBUG-V4] Últimos 10: ...${p12Base64.substring(Math.max(0, p12Base64.length - 10))}`);
-        console.log(`[Efí] [DEBUG-V4] Tamanho após limpeza: ${cleanBase64.length}`);
+        // Se o usuário colou com o prefixo "data:application/x-pkcs12;base64,"
+        if (rawBase64.includes(",")) {
+            rawBase64 = rawBase64.split(",")[1];
+        }
+
+        // Limpeza rigorosa: remove TUDO que não for Base64 válido (+ / = e letras/números)
+        const cleanBase64 = rawBase64.replace(/[^A-Za-z0-9+/=]/g, "");
+
+        console.log(`[Efí] [DEBUG-V4] Tamanho original: ${p12Base64.length}`);
+        console.log(`[Efí] [DEBUG-V4] Tamanho limpo: ${cleanBase64.length}`);
+        console.log(`[Efí] [DEBUG-V4] Primeiros 10: ${cleanBase64.substring(0, 10)}...`);
+        console.log(`[Efí] [DEBUG-V4] Últimos 10: ...${cleanBase64.substring(Math.max(0, cleanBase64.length - 10))}`);
 
         if (cleanBase64.length < 100) {
-            return { cert: "", key: "", error: `[DEBUG-V4] Base64 muito curto (${cleanBase64.length} chars).` };
+            return { cert: "", key: "", error: `[DEBUG-V4] Base64 inválido ou muito curto (${cleanBase64.length} chars).` };
         }
 
-        // Decodificar usando utilitário nativo do forge para maior compatibilidade
-        let p12Der;
-        try {
-            p12Der = forge.util.decode64(cleanBase64);
-            console.log(`[Efí] [DEBUG-V4] Tamanho do DER decodificado: ${p12Der.length} bytes`);
-        } catch (e: any) {
-            return { cert: "", key: "", error: `[DEBUG-V4] Erro na decodificação Base64: ${e.message}` };
-        }
+        // Decodificar usando Buffer (nativo do Node, mais estável para binários)
+        const p12Buffer = Buffer.from(cleanBase64, 'base64');
+        const p12Der = p12Buffer.toString('binary');
+
+        console.log(`[Efí] [DEBUG-V4] Bytes decodificados: ${p12Der.length}`);
 
         let p12Asn1;
         try {
             p12Asn1 = forge.asn1.fromDer(p12Der);
         } catch (e: any) {
-            return { cert: "", key: "", error: `[DEBUG-V4] Erro ao processar estrutura ASN1 (DER): ${e.message}. Isso geralmente indica que o código Base64 está incompleto.` };
+            return { cert: "", key: "", error: `[DEBUG-V4] Erro na estrutura ASN1 (DER): ${e.message}. Verifique se copiou o código completo.` };
         }
 
         let p12;
@@ -51,7 +55,7 @@ function convertP12toPem(p12Base64: string): { cert: string; key: string; error?
             const password = process.env.EFI_CERT_PASSWORD || '';
             p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, password);
         } catch (e: any) {
-            return { cert: "", key: "", error: `[DEBUG-V4] Senha/Arquivo P12 inválido: ${e.message}` };
+            return { cert: "", key: "", error: `[DEBUG-V4] Senha ou Arquivo P12 inválido: ${e.message}` };
         }
 
         const certBags = p12.getBags({ bagType: forge.pki.oids.certBag });
@@ -70,6 +74,8 @@ function convertP12toPem(p12Base64: string): { cert: string; key: string; error?
             return { cert: "", key: "", error: "[DEBUG-V4] Chave privada não encontrada no P12." };
         }
         const keyPem = forge.pki.privateKeyToPem(keyBag.key);
+
+        console.log("[Efí] [DEBUG-V4] Sucesso na conversão PEM.");
 
         return {
             cert: Buffer.from(certPem).toString('base64'),
