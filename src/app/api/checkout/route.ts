@@ -120,9 +120,20 @@ export async function POST(request: NextRequest) {
         });
 
     } catch (error: any) {
-        console.error("[Checkout Efí] Erro:", error);
+        console.error("[Checkout Efí] Erro detalhado:", error);
 
-        const errorMessage = error.nome || error.mensagem || error.message || "Erro ao gerar PIX com Efí Bank";
+        // Tentar extrair a mensagem mais útil do Efí (que pode vir em vários formatos)
+        let errorMessage = "Erro ao gerar PIX";
+
+        if (typeof error === 'string') {
+            errorMessage = error;
+        } else if (error.mensagem) {
+            errorMessage = `${error.nome || 'Erro'}: ${error.mensagem}`;
+        } else if (error.message) {
+            errorMessage = error.message;
+        } else {
+            errorMessage = JSON.stringify(error);
+        }
 
         return NextResponse.json(
             { error: errorMessage },

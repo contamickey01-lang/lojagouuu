@@ -29,8 +29,11 @@ export function getEfiClient() {
     cleanBase64 = cleanBase64.replace(/\s/g, "");
 
     // O SDK da Efí aceita o P12 em Base64 diretamente se 'cert_base64' for true
+    const isSandbox = process.env.EFI_SANDBOX !== "false";
+    console.log(`[Efí] Iniciando cliente em modo: ${isSandbox ? 'SANDBOX' : 'PRODUÇÃO'}`);
+
     const options = {
-        sandbox: process.env.EFI_SANDBOX !== "false",
+        sandbox: isSandbox,
         client_id: clientId,
         client_secret: clientSecret,
         certificate: cleanBase64,
