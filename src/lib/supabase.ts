@@ -96,3 +96,28 @@ export function dbProductToProduct(dbProduct: DBProduct, category?: DBCategory) 
         variants: dbProduct.variants || undefined,
     };
 }
+
+// Upload de imagem para o Supabase Storage
+export async function uploadImage(file: File, folder: string = "products"): Promise<string> {
+    const supabase = getSupabase();
+    if (!supabase) throw new Error("Supabase não configurado.");
+
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+    const filePath = `${folder}/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+        .from("products")
+        .upload(filePath, file);
+
+    if (uploadError) {
+        console.error("[Supabase Storage] Erro no upload:", uploadError);
+        throw uploadError;
+    }
+
+    const { data } = supabase.storage
+        .from("products")
+        .getPublicUrl(filePath);
+
+    return data.publicUrl;
+}

@@ -14,11 +14,14 @@ import {
     Save,
     AlertCircle,
     Database,
+    Upload,
+    Loader2,
 } from "lucide-react";
 import { useAdmin } from "@/components/admin/admin-provider";
 import { useProducts } from "@/components/admin/products-provider";
 import { Product, Category, ProductVariant } from "@/types";
 import { formatCurrency, slugify } from "@/lib/utils";
+import { uploadImage } from "@/lib/supabase";
 
 export default function AdminDashboardPage() {
     const { isAuthenticated, logout } = useAdmin();
@@ -339,6 +342,7 @@ function ProductModal({
         featuredVideoUrl: product?.featuredVideoUrl || "",
     });
 
+    const [isUploading, setIsUploading] = useState<{ [key: string]: boolean }>({});
     const [variants, setVariants] = useState<ProductVariant[]>(product?.variants || []);
 
     const addVariant = () => {
@@ -353,6 +357,24 @@ function ProductModal({
         const newVariants = [...variants];
         newVariants[index] = { ...newVariants[index], [field]: value };
         setVariants(newVariants);
+    };
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsUploading(prev => ({ ...prev, [fieldName]: true }));
+
+        try {
+            const publicUrl = await uploadImage(file);
+            setFormData(prev => ({ ...prev, [fieldName]: publicUrl }));
+            console.log(`[Upload] Sucesso para ${fieldName}:`, publicUrl);
+        } catch (error) {
+            console.error(`[Upload] Erro para ${fieldName}:`, error);
+            alert("Erro ao subir imagem. Verifique se o bucket 'products' foi criado e é público.");
+        } finally {
+            setIsUploading(prev => ({ ...prev, [fieldName]: false }));
+        }
     };
 
     const handleChange = (
@@ -464,35 +486,90 @@ function ProductModal({
                         />
                     </div>
 
-                    {/* URL da Imagem */}
-                    <div>
-                        <label className="block text-sm font-medium text-foreground mb-1">
-                            URL da Imagem Principal *
+                    {/* Imagem Principal */}
+                    <div className="space-y-2">
+                        <label className="block text-sm font-medium text-foreground">
+                            Imagem Principal *
                         </label>
-                        <input
-                            type="url"
-                            name="imageUrl"
-                            value={formData.imageUrl}
-                            onChange={handleChange}
-                            required
-                            placeholder="https://..."
-                            className="w-full px-4 py-2 rounded-xl bg-secondary border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                        />
+                        <div className="flex gap-4">
+                            <div className="flex-1 space-y-2">
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        name="imageUrl"
+                                        value={formData.imageUrl}
+                                        onChange={handleChange}
+                                        placeholder="URL da Imagem..."
+                                        className="flex-1 px-4 py-2 rounded-xl bg-secondary border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                                    />
+                                    <label className="relative flex items-center justify-center px-4 py-2 rounded-xl bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 transition-colors cursor-pointer min-w-[120px]">
+                                        {isUploading.imageUrl ? (
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                            <>
+                                                <Upload className="w-4 h-4 mr-2" />
+                                                <span className="text-sm font-medium">Subir</span>
+                                            </>
+                                        )}
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={(e) => handleFileUpload(e, "imageUrl")}
+                                            disabled={isUploading.imageUrl}
+                                        />
+                                    </label>
+                                </div>
+                            </div>
+                            {formData.imageUrl && (
+                                <div className="w-20 h-20 rounded-xl overflow-hidden border border-border bg-secondary shrink-0 relative">
+                                    <Image src={formData.imageUrl} alt="Preview" fill className="object-cover" unoptimized />
+                                </div>
+                            )}
+                        </div>
                     </div>
 
-                    {/* URL da Imagem em Destaque */}
-                    <div>
-                        <label className="block text-sm font-medium text-foreground mb-1">
-                            URL da Imagem em Destaque (Carousel)
+                    {/* Imagem em Destaque */}
+                    <div className="space-y-2">
+                        <label className="block text-sm font-medium text-foreground">
+                            Imagem em Destaque (Carousel)
                         </label>
-                        <input
-                            type="url"
-                            name="featuredImageUrl"
-                            value={formData.featuredImageUrl}
-                            onChange={handleChange}
-                            placeholder="https://... (PNG/JPG)"
-                            className="w-full px-4 py-2 rounded-xl bg-secondary border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                        />
+                        <div className="flex gap-4">
+                            <div className="flex-1 space-y-2">
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        name="featuredImageUrl"
+                                        value={formData.featuredImageUrl}
+                                        onChange={handleChange}
+                                        placeholder="URL da Imagem de Destaque..."
+                                        className="flex-1 px-4 py-2 rounded-xl bg-secondary border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                                    />
+                                    <label className="relative flex items-center justify-center px-4 py-2 rounded-xl bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 transition-colors cursor-pointer min-w-[120px]">
+                                        {isUploading.featuredImageUrl ? (
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                            <>
+                                                <Upload className="w-4 h-4 mr-2" />
+                                                <span className="text-sm font-medium">Subir</span>
+                                            </>
+                                        )}
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={(e) => handleFileUpload(e, "featuredImageUrl")}
+                                            disabled={isUploading.featuredImageUrl}
+                                        />
+                                    </label>
+                                </div>
+                            </div>
+                            {formData.featuredImageUrl && (
+                                <div className="w-20 h-20 rounded-xl overflow-hidden border border-border bg-secondary shrink-0 relative">
+                                    <Image src={formData.featuredImageUrl} alt="Preview" fill className="object-cover" unoptimized />
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* URL do Vídeo em Destaque */}
