@@ -6,7 +6,7 @@ import { Check, Copy, Loader2, QrCode, AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface PixPaymentProps {
-    paymentId: number;
+    paymentId: string;
     qrCode: string;
     qrCodeBase64: string;
     onSuccess: () => void;
@@ -15,7 +15,7 @@ interface PixPaymentProps {
 export function PixPayment({ paymentId, qrCode, qrCodeBase64, onSuccess }: PixPaymentProps) {
     const [copied, setCopied] = useState(false);
     const [status, setStatus] = useState<string>("pending");
-    const [timeLeft, setTimeLeft] = useState(1800); // 30 minutos
+    const [timeLeft, setTimeLeft] = useState(3600); // 60 minutos para o Efí
     const router = useRouter();
 
     // Polling para verificar status do pagamento
@@ -91,7 +91,7 @@ export function PixPayment({ paymentId, qrCode, qrCodeBase64, onSuccess }: PixPa
                     <div className="relative p-4 bg-white rounded-xl shadow-lg">
                         <div className="relative w-48 h-48">
                             <Image
-                                src={`data:image/jpeg;base64,${qrCodeBase64}`}
+                                src={qrCodeBase64.startsWith('data:') ? qrCodeBase64 : `data:image/png;base64,${qrCodeBase64}`}
                                 alt="QR Code PIX"
                                 fill
                                 className="object-contain"

@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { MercadoPagoConfig, Payment } from "mercadopago";
+import { getEfiClient, generateTxid } from "@/lib/efi";
+import { createClient } from "@supabase/supabase-js";
 
-// Configurar Mercado Pago
-const client = new MercadoPagoConfig({
-    accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN || "",
-});
+// Supabase Admin client for server-side order creation
+function getSupabaseAdmin() {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (url && serviceKey) {
+        return createClient(url, serviceKey);
+    }
+    return null;
+}
 
 interface CartItem {
     id: number;
@@ -35,71 +42,90 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "Nome e CPF são obrigatórios para PIX" }, { status: 400 });
         }
 
-        if (!process.env.MERCADOPAGO_ACCESS_TOKEN) {
-            return NextResponse.json({ error: "Mercado Pago não configurado" }, { status: 500 });
+        // Configurações Efí
+        const efiClientId = process.env.EFI_CLIENT_ID;
+        const efiPixKey = process.env.EFI_PIX_KEY;
+
+        if (!efiClientId || !efiPixKey) {
+            return NextResponse.json({ error: "Configuração do Efí Bank incompleta" }, { status: 500 });
         }
 
         // Calcular total
         const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-        // Criar Pagamento Transparente (PIX)
-        const payment = new Payment(client);
-
-        // Limpar CPF (deixar apenas números)
+        // Limpar CPF
         const cleanCpf = payerCpf.replace(/\D/g, "");
 
-        // Separar nome e sobrenome
-        const nameParts = payerName.split(" ");
-        const firstName = nameParts[0];
-        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "Sobrenome";
+        // Gerar TXID único
+        const txid = generateTxid();
 
-        // Validar URL de notificação
-        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
-        const notificationUrl = siteUrl && siteUrl.startsWith('http')
-            ? `${siteUrl}/api/webhook/mercadopago`
-            : undefined;
+        // 1. Criar pedido 'pendente' no Supabase para rastreio
+        const supabase = getSupabaseAdmin();
+        if (supabase) {
+            const { error: orderError } = await supabase
+                .from("orders")
+                .insert({
+                    payment_id: txid, // Usamos o TXID como identificador inicial
+                    user_id: userId || null,
+                    user_email: userEmail,
+                    items: items.map(i => ({ id: i.id, quantity: i.quantity })),
+                    total: total,
+                    status: "pending",
+                    payment_status: "pending",
+                    payment_method: "pix",
+                    created_at: new Date().toISOString(),
+                });
 
-        const result = await payment.create({
-            body: {
-                transaction_amount: total,
-                description: `Compra na GouPay - ${items.length} itens`,
-                payment_method_id: "pix",
-                payer: {
-                    email: userEmail,
-                    first_name: firstName,
-                    last_name: lastName,
-                    identification: {
-                        type: "CPF",
-                        number: cleanCpf,
-                    },
-                },
-                external_reference: JSON.stringify({
-                    userId,
-                    userEmail,
-                    items: items.map((i) => ({ id: i.id, quantity: i.quantity })),
-                    total,
-                    createdAt: new Date().toISOString(),
-                }),
-                ...(notificationUrl ? { notification_url: notificationUrl } : {}),
+            if (orderError) {
+                console.error("[Checkout Efí] Erro ao salvar pedido pendente:", orderError);
+                // Continuamos mesmo se falhar o log, ou paramos? Melhor parar para garantir rastreio.
+                return NextResponse.json({ error: "Erro ao registrar pedido." }, { status: 500 });
+            }
+        }
+
+        // 2. Criar Cobrança Pix no Efí
+        const efi = getEfiClient();
+
+        const cobBody = {
+            calendario: {
+                expiracao: 3600 // 1 hora
             },
-        });
+            devedor: {
+                cpf: cleanCpf,
+                nome: payerName
+            },
+            valor: {
+                original: total.toFixed(2)
+            },
+            chave: efiPixKey,
+            solicitacaoPagador: `Compra na GouPay - ${items.length} itens`
+        };
 
-        // Retornar dados do PIX para o frontend
+        const cobRef = await efi.pixCreateImmediateCharge({ txid }, cobBody);
+
+        if (!cobRef || !cobRef.loc || !cobRef.loc.id) {
+            throw new Error("Erro ao criar cobrança no Efí Bank");
+        }
+
+        // 3. Gerar QR Code
+        const qrcodeRef = await efi.pixGenerateQRCode({ id: cobRef.loc.id });
+
+        // Retornar dados para o frontend
         return NextResponse.json({
-            id: result.id,
-            status: result.status,
-            qr_code: result.point_of_interaction?.transaction_data?.qr_code,
-            qr_code_base64: result.point_of_interaction?.transaction_data?.qr_code_base64,
-            ticket_url: result.point_of_interaction?.transaction_data?.ticket_url,
+            id: txid,
+            status: "pending",
+            qr_code: qrcodeRef.qrcode,
+            qr_code_base64: qrcodeRef.imagemQrcode,
+            ticket_url: qrcodeRef.linkVisualizacao || "",
         });
-    } catch (error: any) {
-        console.error("[Checkout PIX] Erro:", error);
 
-        // Tentar extrair erro detalhado do Mercado Pago
-        const mpError = error.cause?.[0]?.description || error.message || "Erro ao gerar PIX";
+    } catch (error: any) {
+        console.error("[Checkout Efí] Erro:", error);
+
+        const errorMessage = error.nome || error.mensagem || error.message || "Erro ao gerar PIX com Efí Bank";
 
         return NextResponse.json(
-            { error: mpError },
+            { error: errorMessage },
             { status: 500 }
         );
     }
