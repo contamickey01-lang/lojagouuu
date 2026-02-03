@@ -1,33 +1,48 @@
 import EfiPay from "sdk-node-apis-efi";
-import fs from "fs";
-import path from "path";
-import os from "os";
+import * as forge from 'node-forge';
 
 /**
  * Efí Bank utility to handle PIX payments
  */
 
-// Path for the temporary certificate
-const CERT_PATH = path.join(os.tmpdir(), "efi-certificate.p12");
+interface EfiAuth {
+    certificate: string;
+    pemKey?: string;
+    cert_base64: boolean;
+}
 
 /**
- * Ensures the certificate file exists on disk from the Base64 environment variable.
- * Efí SDK requires a physical path to the .p12 file.
+ * Converts a P12 Base64 string into PEM components (Cert and Key)
+ * returns base64 encoded PEM strings to be used with Efí SDK.
  */
-function setupCertificate() {
-    const certBase64 = process.env.EFI_CERT_BASE64;
-
-    if (!certBase64) {
-        console.warn("[Efí] EFI_CERT_BASE64 não encontrada nas variáveis de ambiente.");
-        return null;
-    }
-
+function convertP12toPem(p12Base64: string): { cert: string; key: string } | null {
     try {
-        const certBuffer = Buffer.from(certBase64, "base64");
-        fs.writeFileSync(CERT_PATH, certBuffer);
-        return CERT_PATH;
+        // Remover sujeira do base64
+        const cleanBase64 = p12Base64.trim().replace(/\s/g, "").replace(/['"]/g, "");
+        const p12Der = forge.util.decode64(cleanBase64);
+        const p12Asn1 = forge.asn1.fromDer(p12Der);
+
+        // Efí P12 geralmente não tem senha
+        const p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, '');
+
+        // Extrair certificado
+        const certBags = p12.getBags({ bagType: forge.pki.oids.certBag });
+        const cert = certBags[forge.pki.oids.certBag]![0].cert;
+        if (!cert) throw new Error("Certificado não encontrado no P12");
+        const certPem = forge.pki.certificateToPem(cert!);
+
+        // Extrair chave privada
+        const keyBags = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
+        const key = keyBags[forge.pki.oids.pkcs8ShroudedKeyBag]![0].key;
+        if (!key) throw new Error("Chave privada não encontrada no P12");
+        const keyPem = forge.pki.privateKeyToPem(key!);
+
+        return {
+            cert: Buffer.from(certPem).toString('base64'),
+            key: Buffer.from(keyPem).toString('base64')
+        };
     } catch (error) {
-        console.error("[Efí] Erro ao salvar certificado temporário:", error);
+        console.error("[Efí] Erro ao converter P12 para PEM:", error);
         return null;
     }
 }
@@ -36,13 +51,26 @@ function setupCertificate() {
  * Returns an initialized Efí SDK instance
  */
 export function getEfiClient() {
-    const certPath = setupCertificate();
+    const certBase64 = process.env.EFI_CERT_BASE64;
+
+    if (!certBase64) {
+        throw new Error("EFI_CERT_BASE64 não encontrada nas variáveis de ambiente.");
+    }
+
+    // Converter P12 para PEM em memória para evitar erros de OpenSSL 3 (mac verify failure)
+    const pemData = convertP12toPem(certBase64);
+
+    if (!pemData) {
+        throw new Error("Falha ao processar certificado. Verifique se o código Base64 está correto.");
+    }
 
     const options = {
-        sandbox: process.env.EFI_SANDBOX !== "false", // Default to sandbox true unless explicitly false
+        sandbox: process.env.EFI_SANDBOX !== "false",
         client_id: process.env.EFI_CLIENT_ID || "",
         client_secret: process.env.EFI_CLIENT_SECRET || "",
-        certificate: certPath || "",
+        certificate: pemData.cert,
+        pemKey: pemData.key,
+        cert_base64: true
     };
 
     return new EfiPay(options);
@@ -50,7 +78,6 @@ export function getEfiClient() {
 
 /**
  * Helper to generate a unique txid (must be between 26 and 35 alphanumeric characters)
- * Efí requires this for immediate charges
  */
 export function generateTxid() {
     const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
