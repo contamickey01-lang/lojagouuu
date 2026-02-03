@@ -263,27 +263,27 @@ export function FeaturedCarousel({ products }: FeaturedCarouselProps) {
 
             {/* Navigation Arrows */}
             {products.length > 1 && (
-                <div className="absolute right-8 bottom-8 z-20 flex gap-3">
+                <div className="absolute right-4 top-20 lg:right-8 lg:bottom-8 lg:top-auto z-20 flex gap-2 lg:gap-3">
                     <button
                         onClick={goToPrevious}
-                        className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all text-white group"
+                        className="w-8 h-8 lg:w-10 lg:h-10 flex items-center justify-center rounded-xl bg-black/20 lg:bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all text-white group backdrop-blur-sm"
                         aria-label="Anterior"
                     >
-                        <ChevronLeft className="w-5 h-5 group-active:scale-75 transition-transform" />
+                        <ChevronLeft className="w-4 h-4 lg:w-5 lg:h-5 group-active:scale-75 transition-transform" />
                     </button>
                     <button
                         onClick={goToNext}
-                        className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all text-white group"
+                        className="w-8 h-8 lg:w-10 lg:h-10 flex items-center justify-center rounded-xl bg-black/20 lg:bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all text-white group backdrop-blur-sm"
                         aria-label="Próximo"
                     >
-                        <ChevronRight className="w-5 h-5 group-active:scale-75 transition-transform" />
+                        <ChevronRight className="w-4 h-4 lg:w-5 lg:h-5 group-active:scale-75 transition-transform" />
                     </button>
                 </div>
             )}
 
             {/* Dots */}
             {products.length > 1 && (
-                <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5">
+                <div className="absolute top-24 lg:bottom-10 lg:top-auto left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5">
                     {products.map((_, index) => (
                         <button
                             key={index}
