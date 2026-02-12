@@ -8,6 +8,7 @@ import { useCart } from "@/components/cart/cart-provider";
 import { useAuth } from "@/components/auth/auth-provider";
 import { AuthModal } from "@/components/auth/auth-modal";
 import { PixPayment } from "@/components/checkout/pix-payment";
+import { CreditCardForm } from "@/components/checkout/credit-card-form";
 import { formatCurrency } from "@/lib/utils";
 
 export default function CartPage() {
@@ -16,6 +17,7 @@ export default function CartPage() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [paymentMethod, setPaymentMethod] = useState<"pix" | "credit_card">("pix");
 
     // Novos campos para PIX
     const [payerName, setPayerName] = useState("");
@@ -37,7 +39,7 @@ export default function CartPage() {
             .replace(/(-\d{2})\d+?$/, "$1");
     };
 
-    const handleCheckout = async () => {
+    const handleCheckout = async (cardData?: any) => {
         // Verificar se está logado
         if (!user) {
             setShowAuthModal(true);
@@ -77,6 +79,8 @@ export default function CartPage() {
                     userId: user.id,
                     payerName,
                     payerCpf,
+                    paymentMethod,
+                    cardData,
                 }),
             });
 
@@ -87,14 +91,16 @@ export default function CartPage() {
             }
 
             // Salvar dados do PIX para mostrar o componente
-            if (data.qr_code) {
+            if (paymentMethod === "pix" && data.qr_code) {
                 setPixData({
                     id: data.id,
                     qr_code: data.qr_code,
                     qr_code_base64: data.qr_code_base64,
                 });
-            } else if (data.init_point) {
-                window.location.href = data.init_point;
+            } else if (paymentMethod === "credit_card") {
+                // Se for cartão e deu sucesso, geralmente redireciona para sucesso
+                clearCart();
+                window.location.href = "/pedido/sucesso";
             } else {
                 throw new Error("Resposta do pagamento inválida");
             }
@@ -308,6 +314,35 @@ export default function CartPage() {
                                             </div>
                                         </div>
 
+                                        {/* Metodo de Pagamento */}
+                                        <div className="mb-6 space-y-3">
+                                            <label className="text-xs font-semibold text-muted-foreground uppercase">
+                                                Método de Pagamento
+                                            </label>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <button
+                                                    onClick={() => setPaymentMethod("pix")}
+                                                    className={`py-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-1 ${paymentMethod === "pix"
+                                                        ? "border-primary bg-primary/5 text-primary"
+                                                        : "border-border bg-transparent text-muted-foreground hover:border-border-hover"
+                                                        }`}
+                                                >
+                                                    <div className="w-5 h-5 bg-current rounded-sm flex items-center justify-center font-bold text-[8px] text-white">PX</div>
+                                                    <span className="text-xs font-bold">PIX</span>
+                                                </button>
+                                                <button
+                                                    onClick={() => setPaymentMethod("credit_card")}
+                                                    className={`py-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-1 ${paymentMethod === "credit_card"
+                                                        ? "border-primary bg-primary/5 text-primary"
+                                                        : "border-border bg-transparent text-muted-foreground hover:border-border-hover"
+                                                        }`}
+                                                >
+                                                    <CreditCard className="w-5 h-5" />
+                                                    <span className="text-xs font-bold">Cartão</span>
+                                                </button>
+                                            </div>
+                                        </div>
+
                                         <div className="pt-4 border-t border-border mb-6">
                                             <div className="flex justify-between">
                                                 <span className="text-foreground font-semibold">Total</span>
@@ -323,26 +358,33 @@ export default function CartPage() {
                                             </div>
                                         )}
 
-                                        <button
-                                            onClick={handleCheckout}
-                                            disabled={isProcessing || authLoading}
-                                            className="w-full py-4 rounded-xl bg-primary hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold transition-all active:scale-[0.98] flex items-center justify-center gap-2"
-                                        >
-                                            {isProcessing ? (
-                                                <>
-                                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                                    Gerando PIX...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <div className="w-5 h-5 bg-white/20 rounded flex items-center justify-center font-bold text-[10px]">PX</div>
-                                                    Gerar QR Code PIX
-                                                </>
-                                            )}
-                                        </button>
+                                        {paymentMethod === "pix" ? (
+                                            <button
+                                                onClick={() => handleCheckout()}
+                                                disabled={isProcessing || authLoading}
+                                                className="w-full py-4 rounded-xl bg-primary hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                                            >
+                                                {isProcessing ? (
+                                                    <>
+                                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                                        Gerando PIX...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <div className="w-5 h-5 bg-white/20 rounded flex items-center justify-center font-bold text-[10px]">PX</div>
+                                                        Gerar QR Code PIX
+                                                    </>
+                                                )}
+                                            </button>
+                                        ) : (
+                                            <CreditCardForm
+                                                isProcessing={isProcessing}
+                                                onSubmit={(cardData) => handleCheckout(cardData)}
+                                            />
+                                        )}
 
                                         <p className="text-[10px] text-muted-foreground text-center mt-4 leading-tight">
-                                            Ao clicar, você concorda em gerar um pagamento via PIX.
+                                            Ao clicar, você concorda com os termos de compra.
                                             Seus dados são processados com segurança pelo Efí Bank.
                                         </p>
                                     </div>

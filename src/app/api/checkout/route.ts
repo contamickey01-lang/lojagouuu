@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getMercadoPagoClient } from "@/lib/mercadopago";
+import { createPixOrder } from "@/lib/efi";
 import { createClient } from "@supabase/supabase-js";
 
 // Supabase Admin client for server-side order creation
@@ -27,66 +27,41 @@ interface CheckoutRequest {
     userId?: string;
     payerName: string;
     payerCpf: string;
+    paymentMethod?: "pix" | "credit_card";
+    cardData?: any; // To be implemented with Efí Card token
 }
 
 export async function POST(request: NextRequest) {
     try {
         const body: CheckoutRequest = await request.json();
-        const { items, userEmail, userId, payerName, payerCpf } = body;
+        const { items, userEmail, userId, payerName, payerCpf, paymentMethod = "pix" } = body;
 
         if (!items || items.length === 0) {
             return NextResponse.json({ error: "Carrinho vazio" }, { status: 400 });
         }
 
         if (!payerName || !payerCpf) {
-            return NextResponse.json({ error: "Nome e CPF são obrigatórios para PIX" }, { status: 400 });
+            return NextResponse.json({ error: "Nome e CPF são obrigatórios" }, { status: 400 });
         }
 
         // Calcular total
         const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-        // Limpar CPF
-        const cleanCpf = payerCpf.replace(/\D/g, "");
+        // 1. Criar pedido no Efí Bank
+        let result: any;
 
-        // Separar nome e sobrenome (Mercado Pago pede separado)
-        const nameParts = payerName.trim().split(" ");
-        const firstName = nameParts[0];
-        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : firstName;
-
-        // 1. Criar pedido no Mercado Pago
-        const payment = getMercadoPagoClient();
-
-        // Gerar uma URL de notificação automática (Vercel URL + hook)
-        const protocol = request.headers.get("x-forwarded-proto") || "https";
-        const host = request.headers.get("host");
-        const notificationUrl = `${protocol}://${host}/api/webhooks/mercadopago`;
-
-        const paymentData = {
-            body: {
-                transaction_amount: total,
-                description: `Compra na GouPay - ${items.length} itens`,
-                payment_method_id: "pix",
-                payer: {
-                    email: userEmail,
-                    first_name: firstName,
-                    last_name: lastName,
-                    identification: {
-                        type: "CPF",
-                        number: cleanCpf,
-                    },
-                },
-                notification_url: notificationUrl,
-                metadata: {
-                    user_id: userId || "guest",
-                    items: JSON.stringify(items.map(i => ({ id: i.id, q: i.quantity }))),
-                }
-            }
-        };
-
-        const result = await payment.create(paymentData);
+        if (paymentMethod === "pix") {
+            result = await createPixOrder(total, { name: payerName, cpf: payerCpf });
+        } else if (paymentMethod === "credit_card") {
+            // TODO: Implementar fluxo de cartão de crédito
+            // Para cartão, precisamos do token gerado pelo SDK do Efí no frontend
+            return NextResponse.json({ error: "Pagamento por cartão em fase de implementação" }, { status: 400 });
+        } else {
+            return NextResponse.json({ error: "Método de pagamento inválido" }, { status: 400 });
+        }
 
         if (!result.id) {
-            throw new Error("Falha ao criar pagamento no Mercado Pago");
+            throw new Error("Falha ao criar pagamento no Efí Bank");
         }
 
         // 2. Criar pedido 'pendente' no Supabase para rastreio
@@ -102,38 +77,28 @@ export async function POST(request: NextRequest) {
                     total: total,
                     status: "pending",
                     payment_status: "pending",
-                    payment_method: "pix",
+                    payment_method: paymentMethod,
                     created_at: new Date().toISOString(),
                 });
 
             if (orderError) {
-                console.error("[Checkout MP] Erro ao salvar pedido:", orderError);
+                console.error("[Checkout Efí] Erro ao salvar pedido:", orderError);
             }
         }
 
         // Retornar dados para o frontend
-        const transactionData = result.point_of_interaction?.transaction_data;
-
         return NextResponse.json({
             id: result.id,
             status: result.status,
-            qr_code: transactionData?.qr_code,
-            qr_code_base64: transactionData?.qr_code_base64,
-            ticket_url: transactionData?.ticket_url,
+            qr_code: result.qr_code,
+            qr_code_base64: result.qr_code_base64,
         });
 
     } catch (error: any) {
-        console.error("[Checkout MP] Erro:", error);
-
-        let message = "Erro ao processar checkout";
-        if (error.cause && Array.isArray(error.cause)) {
-            message = error.cause[0]?.description || message;
-        } else if (error.message) {
-            message = error.message;
-        }
+        console.error("[Checkout Efí] Erro:", error);
 
         return NextResponse.json(
-            { error: message },
+            { error: error.message || "Erro ao processar checkout" },
             { status: 500 }
         );
     }
