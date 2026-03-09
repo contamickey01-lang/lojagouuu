@@ -58,29 +58,33 @@ export async function createGouPayPixOrder(amount: number, payer: PayerData, des
             throw new Error("Resposta da API GouPay não contém código Pix");
         }
 
+        console.log("[GouPay API] Chaves da resposta:", Object.keys(data));
+        if (data.data) console.log("[GouPay API] Chaves de data.data:", Object.keys(data.data));
+
         // Logs detalhados para debugar qual ID é o correto
-        console.log("[GouPay API] Campos de ID disponíveis na resposta:", {
-            "data.data.ID": data.data?.ID,
-            "data.ID": data.ID,
-            "data.transaction_id": data.transaction_id,
-            "data.data.transaction_id": data.data?.transaction_id,
-            "data.id": data.id,
-            "data.data.id": data.data?.id,
+        const candidates = {
+            "ID": data.ID,
+            "id": data.id,
+            "transaction_id": data.transaction_id,
+            "data.ID": data.data?.ID,
+            "data.id": data.data?.id,
+            "data.transaction_id": data.data?.transaction_id,
             "data.pix.id": data.pix?.id,
             "data.pdu.id": data.pdu?.id
-        });
+        };
+        console.log("[GouPay API] Candidatos a ID:", JSON.stringify(candidates));
 
         // The ID should be consistent with what the webhook sends (data.ID in docs)
-        const transitionId = data.data?.ID ||
-            data.ID ||
-            data.transaction_id ||
+        const transitionId = data.transaction_id ||
             data.data?.transaction_id ||
+            data.ID ||
+            data.data?.ID ||
             data.id ||
             data.data?.id ||
             data.pix?.id ||
             data.pdu?.id;
 
-        console.log(`[GouPay API] ID de transação identificado para salvar: ${transitionId}`);
+        console.log(`[GouPay API] ID definitivo para salvar no banco: ${transitionId}`);
 
         return {
             id: transitionId || `gou_${Date.now()}`,
