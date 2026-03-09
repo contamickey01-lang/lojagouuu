@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
                 .from("orders")
                 .select("*")
                 .eq("payment_id", String(txid))
-                .single();
+                .maybeSingle();
 
             if (fetchError || !order) {
                 console.error(`[Webhook GouPay] Pedido não encontrado para payment_id: ${txid}`, fetchError);

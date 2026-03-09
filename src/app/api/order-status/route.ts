@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
             .from("orders")
             .select("status, payment_status")
             .eq("payment_id", String(paymentId))
-            .single();
+            .maybeSingle();
 
         if (error || !data) {
             return NextResponse.json({ status: "pending", message: "Pedido não encontrado" });
