@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
                 });
 
             if (orderError) {
-                console.error("[Checkout Efí] Erro ao salvar pedido:", orderError);
+                console.error("[Checkout GouPay] Erro ao salvar pedido:", orderError);
             }
         }
 
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
         });
 
     } catch (error: any) {
-        console.error("[Checkout Efí] Erro:", error);
+        console.error("[Checkout GouPay] Erro:", error);
 
         return NextResponse.json(
             { error: error.message || "Erro ao processar checkout" },
