@@ -47,15 +47,15 @@ export async function GET(request: NextRequest) {
             const goupayStatus = await checkGouPayOrderStatus(String(paymentId));
 
             if (goupayStatus) {
-                console.log(`[Order Status] GouPay retornou status: ${goupayStatus.status}`);
+                console.log(`[Order Status] GouPay retornou dados para ID ${paymentId}: status=${goupayStatus.status}`);
 
                 const isPaid = ['paid', 'completed', 'success', 'approved', 'pago', 'concluido'].includes(String(goupayStatus.status).toLowerCase());
 
                 if (isPaid) {
-                    console.log(`[Order Status] Atualizando pedido ${data.id} para PAGO via consulta direta.`);
+                    console.log(`[Order Status] Atualizando pedido ${data.id} para PAGO via consulta direta (ID GouPay: ${paymentId})`);
 
-                    // Atualiza banco de dados (o mesmo que o webhook faria)
-                    await supabase
+                    // Atualiza banco de dados
+                    const { error: finalUpdateError } = await supabase
                         .from("orders")
                         .update({
                             status: "paid",
@@ -64,21 +64,35 @@ export async function GET(request: NextRequest) {
                         })
                         .eq("id", data.id);
 
+                    if (finalUpdateError) {
+                        console.error("[Order Status] Erro ao atualizar status final:", finalUpdateError);
+                    }
+
                     // Também tenta atualizar estoque
                     if (data.items && Array.isArray(data.items)) {
+                        console.log(`[Order Status] Processando baixa de estoque para ${data.items.length} itens...`);
                         for (const item of data.items) {
-                            await supabase.rpc("decrement_stock", {
-                                product_id: item.id,
-                                quantity: item.quantity,
-                            });
+                            try {
+                                await supabase.rpc("decrement_stock", {
+                                    product_id: item.id,
+                                    quantity: item.quantity,
+                                });
+                            } catch (e) {
+                                console.error(`[Order Status] Erro ao baixar estoque do item ${item.id}:`, e);
+                            }
                         }
                     }
 
                     return NextResponse.json({
                         status: "paid",
-                        payment_status: "concluido"
+                        payment_status: "concluido",
+                        source: "manual_check"
                     });
+                } else {
+                    console.log(`[Order Status] Transação ${paymentId} ainda está como: ${goupayStatus.status}`);
                 }
+            } else {
+                console.warn(`[Order Status] API GouPay não retornou dados válidos para o ID: ${paymentId}`);
             }
         }
 
