@@ -29,22 +29,44 @@ export async function POST(request: NextRequest) {
         console.log("[Webhook GouPay] Payload Bruto:", JSON.stringify(body, null, 2));
 
         // GouPay official format: body.event and body.data.ID
-        // We also check for common alternatives if the payload is flat
-        const event = body.event || body.type;
-        const txid = body.data?.ID || body.ID || body.data?.id || body.transaction_id || body.id || body.payload?.id;
-        const status = body.data?.status || body.status || body.payload?.status;
+        // We also check for common alternatives if the payload is flat or nested differently
+        const event = body.event || body.type || body.data?.event;
+
+        // Deep search for ID in common places
+        const txid = body.data?.ID ||
+            body.ID ||
+            body.data?.id ||
+            body.transaction_id ||
+            body.id ||
+            body.payload?.id ||
+            body.pix?.id ||
+            body.pdu?.id;
+
+        // Deep search for status
+        const status = body.data?.status ||
+            body.status ||
+            body.payload?.status ||
+            body.pix?.status ||
+            body.pdu?.status;
 
         console.log(`[Webhook GouPay] Evento: ${event}, txid identificado: ${txid}, status: ${status}`);
 
         if (!txid) {
-            console.error("[Webhook GouPay] Payload sem ID de transação:", body);
+            console.error("[Webhook GouPay] Payload sem ID de transação detectável:", body);
             return NextResponse.json({ error: "Invalid payload: no transaction id" }, { status: 400 });
         }
 
-        // Check for paid event or paid status
-        const isPaid = event === "order.paid" || ['paid', 'completed', 'success', 'approved'].includes(String(status).toLowerCase());
+        /**
+         * We consider it paid if:
+         * 1. The event is 'order.paid'
+         * 2. The status is one of the success strings
+         * 3. OR, as a fallback for some gateways, if they send a webhook at all for a payment event
+         */
+        const isPaid = event?.includes("paid") ||
+            event?.includes("success") ||
+            ['paid', 'completed', 'success', 'approved', 'pago', 'concluido'].includes(String(status).toLowerCase());
 
-        if (isPaid) {
+        if (isPaid || (event && !status)) { // Assume paid if event exists but no status field (some gateways do this)
             const supabase = getSupabaseAdmin();
             if (!supabase) {
                 console.error("[Webhook GouPay] Erro: Supabase Admin não configurado.");
