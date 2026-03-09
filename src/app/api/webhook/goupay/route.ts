@@ -20,19 +20,21 @@ export async function POST(request: NextRequest) {
 
         console.log("[Webhook GouPay] Recebido:", JSON.stringify(body, null, 2));
 
-        // GouPay can send payload in different formats
-        const txid = body.transaction_id || body.id || body.pix?.id || body.pdu?.id || body.txid;
-        const status = body.status || body.pix?.status || body.pdu?.status;
+        // GouPay official format: body.event and body.data.ID
+        const event = body.event;
+        // The documentation shows "ID" inside "data"
+        const txid = body.data?.ID || body.ID || body.transaction_id || body.id;
+        const status = body.data?.status || body.status;
 
-        console.log(`[Webhook GouPay] txid identificado: ${txid}, status: ${status}`);
+        console.log(`[Webhook GouPay] Evento: ${event}, txid identificado: ${txid}, status: ${status}`);
 
         if (!txid) {
             console.error("[Webhook GouPay] Payload sem ID de transação:", body);
             return NextResponse.json({ error: "Invalid payload: no transaction id" }, { status: 400 });
         }
 
-        // status can be 'paid', 'completed', 'success' or even 'approved'
-        const isPaid = ['paid', 'completed', 'success', 'approved', 'pago', 'concluido'].includes(String(status).toLowerCase());
+        // Check for paid event or paid status
+        const isPaid = event === "order.paid" || ['paid', 'completed', 'success', 'approved'].includes(String(status).toLowerCase());
 
         if (isPaid) {
             const supabase = getSupabaseAdmin();

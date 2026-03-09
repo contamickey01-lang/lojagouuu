@@ -49,15 +49,18 @@ export async function createGouPayPixOrder(amount: number, payer: PayerData, des
          * data.pdu.qr_code
          */
 
-        const qrCodeText = data.pix?.qr_code || data.pdu?.qr_code || data.pix_qr_code || data.pdu_qr_code;
+        const qrCodeText = data.data?.pix_qr_code || data.pix?.qr_code || data.pdu?.qr_code || data.pix_qr_code || data.pdu_qr_code;
 
         if (!qrCodeText) {
             console.error("[GouPay API] Resposta sem QR Code:", data);
             throw new Error("Resposta da API GouPay não contém código Pix");
         }
 
+        // The ID should be consistent with what the webhook sends (data.ID in docs)
+        const transitionId = data.data?.ID || data.ID || data.transaction_id || data.id || data.pix?.id || data.pdu?.id;
+
         return {
-            id: data.transaction_id || data.id || data.pix?.id || data.pdu?.id || `gou_${Date.now()}`,
+            id: transitionId || `gou_${Date.now()}`,
             status: "pending",
             qr_code: qrCodeText,
             // Generate a QR code image using a public API
