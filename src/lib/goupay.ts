@@ -11,6 +11,26 @@ interface PayerData {
     cpf: string;
 }
 
+/**
+ * Helper to search recursively for anything that looks like a Pagar.me ID (or_...)
+ */
+function findPagarmeIdInObject(obj: any): string | null {
+    if (!obj || typeof obj !== 'object') return null;
+
+    // Check all keys
+    for (const key in obj) {
+        const value = obj[key];
+        if (typeof value === 'string' && value.startsWith('or_')) {
+            return value;
+        }
+        if (typeof value === 'object') {
+            const found = findPagarmeIdInObject(value);
+            if (found) return found;
+        }
+    }
+    return null;
+}
+
 export async function createGouPayPixOrder(amount: number, payer: PayerData, description: string = "Compra na Loja Gou") {
     // GouPay expects amount in cents
     const amountInCents = Math.round(amount * 100);
@@ -21,6 +41,7 @@ export async function createGouPayPixOrder(amount: number, payer: PayerData, des
     try {
         const response = await fetch(`${GOUPAY_BASE_URL}/pix`, {
             method: 'POST',
+            cache: 'no-store',
             headers: {
                 'Content-Type': 'application/json',
                 'x-api-key': GOUPAY_API_KEY
@@ -43,7 +64,7 @@ export async function createGouPayPixOrder(amount: number, payer: PayerData, des
             throw new Error(`Erro GouPay: ${data.message || 'Erro ao criar Pix'}`);
         }
 
-        console.log("[GouPay API] Resposta de criação completa:", JSON.stringify(data, null, 2));
+        console.log("[GouPay API] Resposta de criação completa (JSON):", JSON.stringify(data));
 
         /**
          * Response format can vary:
@@ -58,31 +79,20 @@ export async function createGouPayPixOrder(amount: number, payer: PayerData, des
             throw new Error("Resposta da API GouPay não contém código Pix");
         }
 
-        console.log("[GouPay API] Chaves da resposta:", Object.keys(data));
-        if (data.data) console.log("[GouPay API] Chaves de data.data:", Object.keys(data.data));
+        // Tenta encontrar um ID do Pagar.me (or_...) na resposta toda
+        const pagarmeId = findPagarmeIdInObject(data);
+        if (pagarmeId) {
+            console.log(`[GouPay API] Pagarme ID encontrado na resposta: ${pagarmeId}`);
+        }
 
-        // Logs detalhados para debugar qual ID é o correto
-        const candidates = {
-            "ID": data.ID,
-            "id": data.id,
-            "transaction_id": data.transaction_id,
-            "data.ID": data.data?.ID,
-            "data.id": data.data?.id,
-            "data.transaction_id": data.data?.transaction_id,
-            "data.pix.id": data.pix?.id,
-            "data.pdu.id": data.pdu?.id
-        };
-        console.log("[GouPay API] Candidatos a ID:", JSON.stringify(candidates));
-
-        // The ID should be consistent with what the webhook sends (data.ID in docs)
-        const transitionId = data.transaction_id ||
+        // Prioridade: Pagarme ID > transaction_id > ID
+        const transitionId = pagarmeId ||
+            data.transaction_id ||
             data.data?.transaction_id ||
             data.ID ||
             data.data?.ID ||
             data.id ||
-            data.data?.id ||
-            data.pix?.id ||
-            data.pdu?.id;
+            data.data?.id;
 
         console.log(`[GouPay API] ID definitivo para salvar no banco: ${transitionId}`);
 
@@ -103,47 +113,54 @@ export async function createGouPayPixOrder(amount: number, payer: PayerData, des
  * Consulta status de um Pix na GouPay
  */
 export async function checkGouPayOrderStatus(id: string) {
-    try {
-        console.log(`[GouPay Status Check] Consultando ID: ${id}`);
-        const response = await fetch(`${GOUPAY_BASE_URL}/pix/${id}`, {
-            method: 'GET',
-            headers: {
-                'x-api-key': GOUPAY_API_KEY
-            }
-        });
+    // Lista de URLs para tentar (Redundância caso o gateway tenha formatos variados)
+    const urlsToTry = [
+        `${GOUPAY_BASE_URL}/pix/${id}`,           // Formato oficial (Path)
+        `${GOUPAY_BASE_URL}/pix?id=${id}`,        // Backup (Query)
+        `https://www.goupay.com.br/api/pix/${id}` // Sem o /v1/
+    ];
 
-        const text = await response.text();
-
-        // Se a resposta começar com <, ainda é HTML (erro no gateway)
-        if (text.trim().startsWith('<')) {
-            console.error(`[GouPay Status Check] Recebeu HTML. O gateway ainda pode estar com erro no endpoint /api/v1/pix/${id}`);
-            return null;
-        }
-
-        let data;
+    for (const url of urlsToTry) {
         try {
-            data = JSON.parse(text);
-        } catch (e) {
-            console.error("[GouPay Status Check] Resposta inválida (não JSON):", text.substring(0, 100));
-            return null;
+            console.log(`[GouPay Status Check] Tentando URL: ${url}`);
+            const response = await fetch(url, {
+                method: 'GET',
+                cache: 'no-store',
+                headers: {
+                    'x-api-key': GOUPAY_API_KEY
+                }
+            });
+
+            const text = await response.text();
+
+            if (text.trim().startsWith('<')) {
+                console.log(`[GouPay Status Check] Resposta HTML ignorada para URL: ${url}`);
+                continue;
+            }
+
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                console.log(`[GouPay Status Check] Resposta inválida (não JSON) para URL ${url}:`, text.substring(0, 100));
+                continue;
+            }
+
+            if (response.ok && data && (data.status || data.data?.status)) {
+                const status = data.status || data.data?.status || "pending";
+                console.log(`[GouPay Status Check] Sucesso na URL ${url}. Status: ${status}`);
+                return {
+                    status: String(status).toLowerCase(),
+                    raw: data
+                };
+            } else {
+                console.log(`[GouPay Status Check] Resposta negativa ou vazia para ${url}:`, text.substring(0, 100));
+            }
+        } catch (error) {
+            console.error(`[GouPay Status Check] Erro ao tentar URL ${url}:`, error);
         }
-
-        if (!response.ok) {
-            console.error("[GouPay Status Check Error]", data);
-            return null;
-        }
-
-        // De acordo com o dono da GouPay: status pode ser "paid", "pending", etc.
-        const status = data.status || data.data?.status || "pending";
-        console.log(`[GouPay Status Check] Status da transação: ${status}`);
-
-        return {
-            status: String(status).toLowerCase(),
-            raw: data
-        };
-    } catch (error) {
-        console.error("[GouPay Status Check failed]", error);
-        return null;
     }
-}
 
+    console.error(`[GouPay Status Check] Todas as tentativas falharam para o ID: ${id}`);
+    return null;
+}
