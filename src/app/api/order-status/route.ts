@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { checkGouPayOrderStatus } from "@/lib/goupay";
 
 function getSupabaseAdmin() {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -25,11 +26,11 @@ export async function GET(request: NextRequest) {
             throw new Error("Supabase não configurado");
         }
 
-        // Buscar pedido pelo payment_id (TXID no Efí ou ID no Mercado Pago)
+        // 1. Buscar pedido localmente
         console.log(`[Order Status] Buscando status para payment_id: ${paymentId}`);
         const { data, error } = await supabase
             .from("orders")
-            .select("status, payment_status")
+            .select("*")
             .eq("payment_id", String(paymentId))
             .maybeSingle();
 
@@ -38,11 +39,52 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ status: "pending", message: "Pedido não encontrado" });
         }
 
-        console.log(`[Order Status] Pedido ${paymentId} encontrado. Status: ${data.status}`);
+        console.log(`[Order Status] Pedido ${paymentId} encontrado. Status local: ${data.status}`);
+
+        // 2. Se estiver pendente, fazemos uma consulta direta na API da GouPay (fallback do webhook)
+        if (data.status === "pending") {
+            console.log(`[Order Status] Pedido ${paymentId} pendente no banco. Consultando API GouPay...`);
+            const goupayStatus = await checkGouPayOrderStatus(String(paymentId));
+
+            if (goupayStatus) {
+                console.log(`[Order Status] GouPay retornou status: ${goupayStatus.status}`);
+
+                const isPaid = ['paid', 'completed', 'success', 'approved', 'pago', 'concluido'].includes(String(goupayStatus.status).toLowerCase());
+
+                if (isPaid) {
+                    console.log(`[Order Status] Atualizando pedido ${data.id} para PAGO via consulta direta.`);
+
+                    // Atualiza banco de dados (o mesmo que o webhook faria)
+                    await supabase
+                        .from("orders")
+                        .update({
+                            status: "paid",
+                            payment_status: "concluido",
+                            paid_at: new Date().toISOString(),
+                        })
+                        .eq("id", data.id);
+
+                    // Também tenta atualizar estoque
+                    if (data.items && Array.isArray(data.items)) {
+                        for (const item of data.items) {
+                            await supabase.rpc("decrement_stock", {
+                                product_id: item.id,
+                                quantity: item.quantity,
+                            });
+                        }
+                    }
+
+                    return NextResponse.json({
+                        status: "paid",
+                        payment_status: "concluido"
+                    });
+                }
+            }
+        }
 
         // Retornar o status simplificado para o frontend
         return NextResponse.json({
-            status: data.status, // 'paid', 'pending', etc
+            status: data.status,
             payment_status: data.payment_status
         });
 
@@ -51,3 +93,4 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "Erro interno" }, { status: 500 });
     }
 }
+

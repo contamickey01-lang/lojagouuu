@@ -71,3 +71,37 @@ export async function createGouPayPixOrder(amount: number, payer: PayerData, des
         throw error;
     }
 }
+
+/**
+ * Consulta status de um Pix na GouPay
+ */
+export async function checkGouPayOrderStatus(id: string) {
+    try {
+        const response = await fetch(`${GOUPAY_BASE_URL}/pix/${id}`, {
+            method: 'GET',
+            headers: {
+                'x-api-key': GOUPAY_API_KEY
+            }
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.error("[GouPay Status Check Error]", data);
+            return null;
+        }
+
+        /**
+         * The status field in the response:
+         * data.status should be 'paid', 'completed', etc.
+         */
+        return {
+            status: data.data?.status || data.status || "pending",
+            raw: data
+        };
+    } catch (error) {
+        console.error("[GouPay Status Check failed]", error);
+        return null;
+    }
+}
+
