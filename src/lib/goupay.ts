@@ -43,6 +43,8 @@ export async function createGouPayPixOrder(amount: number, payer: PayerData, des
             throw new Error(`Erro GouPay: ${data.message || 'Erro ao criar Pix'}`);
         }
 
+        console.log("[GouPay API] Resposta de criação completa:", JSON.stringify(data, null, 2));
+
         /**
          * Response format can vary:
          * data.pix.qr_code
@@ -58,6 +60,8 @@ export async function createGouPayPixOrder(amount: number, payer: PayerData, des
 
         // The ID should be consistent with what the webhook sends (data.ID in docs)
         const transitionId = data.data?.ID || data.ID || data.transaction_id || data.id || data.pix?.id || data.pdu?.id;
+
+        console.log(`[GouPay API] ID de transação identificado para salvar: ${transitionId}`);
 
         return {
             id: transitionId || `gou_${Date.now()}`,
