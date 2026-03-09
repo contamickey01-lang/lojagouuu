@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Buscar pedido pelo payment_id (TXID no Efí ou ID no Mercado Pago)
+        console.log(`[Order Status] Buscando status para payment_id: ${paymentId}`);
         const { data, error } = await supabase
             .from("orders")
             .select("status, payment_status")
@@ -33,8 +34,11 @@ export async function GET(request: NextRequest) {
             .maybeSingle();
 
         if (error || !data) {
+            console.log(`[Order Status] Pedido ${paymentId} não encontrado no banco.`);
             return NextResponse.json({ status: "pending", message: "Pedido não encontrado" });
         }
+
+        console.log(`[Order Status] Pedido ${paymentId} encontrado. Status: ${data.status}`);
 
         // Retornar o status simplificado para o frontend
         return NextResponse.json({

@@ -28,7 +28,10 @@ export function PixPayment({ paymentId, qrCode, qrCodeBase64, onSuccess }: PixPa
                     const response = await fetch(`/api/order-status?paymentId=${paymentId}`);
                     const data = await response.json();
 
-                    if (data.status === "approved" || data.status === "paid") {
+                    console.log(`[Pix Polling] ID: ${paymentId}, Status recebido: ${data.status}`);
+
+                    if (data.status === "approved" || data.status === "paid" || data.status === "completed" || data.status === "concluido") {
+                        console.log("[Pix Polling] Pagamento aprovado! Redirecionando...");
                         setStatus("approved");
                         clearInterval(interval);
                         setTimeout(() => {
