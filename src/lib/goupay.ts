@@ -60,17 +60,9 @@ export async function createGouPayPixOrder(amount: number, payer: PayerData, des
         const data = await response.json();
 
         if (!response.ok) {
-            console.error("[GouPay API Error]", data);
+            console.error("[GouPay API] Erro ao criar Pix:", data);
             throw new Error(`Erro GouPay: ${data.message || 'Erro ao criar Pix'}`);
         }
-
-        console.log("[GouPay API] Resposta de criação completa (JSON):", JSON.stringify(data));
-
-        /**
-         * Response format can vary:
-         * data.pix.qr_code
-         * data.pdu.qr_code
-         */
 
         const qrCodeText = data.data?.pix_qr_code || data.pix?.qr_code || data.pdu?.qr_code || data.pix_qr_code || data.pdu_qr_code;
 
@@ -79,22 +71,19 @@ export async function createGouPayPixOrder(amount: number, payer: PayerData, des
             throw new Error("Resposta da API GouPay não contém código Pix");
         }
 
-        // Tenta encontrar um ID do Pagar.me (or_...) na resposta toda
+        // Tenta encontrar um ID do Pagar.me (or_...) na resposta (caso o gateway responda com ele)
         const pagarmeId = findPagarmeIdInObject(data);
-        if (pagarmeId) {
-            console.log(`[GouPay API] Pagarme ID encontrado na resposta: ${pagarmeId}`);
-        }
 
-        // Prioridade: Pagarme ID > transaction_id > ID
-        const transitionId = pagarmeId ||
-            data.transaction_id ||
+        // Prioridade: transaction_id (Confirmado pelo dono) > Pagarme ID > ID Genérico
+        const transitionId = data.transaction_id ||
             data.data?.transaction_id ||
+            pagarmeId ||
             data.ID ||
             data.data?.ID ||
             data.id ||
             data.data?.id;
 
-        console.log(`[GouPay API] ID definitivo para salvar no banco: ${transitionId}`);
+        console.log(`[GouPay API] Pix criado com sucesso. ID Vinculado: ${transitionId}`);
 
         return {
             id: transitionId || `gou_${Date.now()}`,
