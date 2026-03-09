@@ -23,21 +23,40 @@ export async function GET() {
  * GouPay Webhook Handler
  */
 export async function POST(request: NextRequest) {
-    try {
-        const body = await request.json();
+    const contentType = request.headers.get("content-type") || "";
+    console.log(`[Webhook GouPay] Nova requisição POST recebida. Content-Type: ${contentType}`);
 
-        console.log("[Webhook GouPay] Payload Bruto:", JSON.stringify(body, null, 2));
+    try {
+        let body: any = {};
+
+        if (contentType.includes("application/json")) {
+            body = await request.json();
+        } else if (contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data")) {
+            const formData = await request.formData();
+            body = Object.fromEntries(formData.entries());
+        } else {
+            const text = await request.text();
+            console.log("[Webhook GouPay] Content-Type não mapeado. Tentando JSON do texto:", text.substring(0, 100));
+            try {
+                body = JSON.parse(text);
+            } catch (e) {
+                console.error("[Webhook GouPay] Falha ao processar corpo da requisição.");
+                return NextResponse.json({ status: "ignored", message: "Unsupported format" });
+            }
+        }
+
+        console.log("[Webhook GouPay] Payload Processado:", JSON.stringify(body, null, 2));
 
         // GouPay official format: body.event and body.data.ID
-        // We also check for common alternatives if the payload is flat or nested differently
-        const event = body.event || body.type || body.data?.event;
+        const event = body.event || body.type || body.data?.event || body.request?.event;
 
         // Deep search for ID in common places
         const txid = body.data?.ID ||
             body.ID ||
-            body.data?.id ||
+            body.data?.id || // Tentando minúsculo também
+            body.id ||       // Plano
             body.transaction_id ||
-            body.id ||
+            body.request?.id ||
             body.payload?.id ||
             body.pix?.id ||
             body.pdu?.id;
@@ -52,8 +71,8 @@ export async function POST(request: NextRequest) {
         console.log(`[Webhook GouPay] Evento: ${event}, txid identificado: ${txid}, status: ${status}`);
 
         if (!txid) {
-            console.error("[Webhook GouPay] Payload sem ID de transação detectável:", body);
-            return NextResponse.json({ error: "Invalid payload: no transaction id" }, { status: 400 });
+            console.warn("[Webhook GouPay] Payload sem ID de transação detectável.");
+            return NextResponse.json({ status: "ignored", message: "no txid" });
         }
 
         /**

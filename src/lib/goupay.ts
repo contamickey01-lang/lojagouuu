@@ -86,13 +86,18 @@ export async function checkGouPayOrderStatus(id: string) {
         });
 
         const text = await response.text();
-        console.log(`[GouPay Status Check] Resposta Bruta: ${text}`);
+
+        // Se a resposta começar com < ou <!DOCTYPE, é um HTML (provável erro 404 da GouPay)
+        if (text.trim().startsWith('<')) {
+            console.error(`[GouPay Status Check] Recebeu HTML em vez de JSON. O endpoint /pix/${id} pode estar incorreto ou não existir.`);
+            return null;
+        }
 
         let data;
         try {
             data = JSON.parse(text);
         } catch (e) {
-            console.error("[GouPay Status Check] Erro ao parsear JSON:", text);
+            console.error("[GouPay Status Check] Erro ao parsear JSON:", text.substring(0, 100));
             return null;
         }
 
@@ -101,10 +106,6 @@ export async function checkGouPayOrderStatus(id: string) {
             return null;
         }
 
-        /**
-         * The status field in the response:
-         * data.status should be 'paid', 'completed', etc.
-         */
         const status = data.data?.status || data.status || data.payload?.status || data.pix?.status || "pending";
         console.log(`[GouPay Status Check] Status identificado: ${status}`);
 
