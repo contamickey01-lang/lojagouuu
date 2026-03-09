@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { POST as GouPayPOST } from "../webhook/goupay/route";
+import { POST as GouPayPOST } from "../../webhook/goupay/route";
 
 /**
  * Mirror of the singular webhook route to handle plural 'webhooks' configuration
