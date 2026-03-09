@@ -77,6 +77,7 @@ export async function createGouPayPixOrder(amount: number, payer: PayerData, des
  */
 export async function checkGouPayOrderStatus(id: string) {
     try {
+        console.log(`[GouPay Status Check] Consultando ID: ${id}`);
         const response = await fetch(`${GOUPAY_BASE_URL}/pix/${id}`, {
             method: 'GET',
             headers: {
@@ -84,7 +85,16 @@ export async function checkGouPayOrderStatus(id: string) {
             }
         });
 
-        const data = await response.json();
+        const text = await response.text();
+        console.log(`[GouPay Status Check] Resposta Bruta: ${text}`);
+
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            console.error("[GouPay Status Check] Erro ao parsear JSON:", text);
+            return null;
+        }
 
         if (!response.ok) {
             console.error("[GouPay Status Check Error]", data);
@@ -95,8 +105,11 @@ export async function checkGouPayOrderStatus(id: string) {
          * The status field in the response:
          * data.status should be 'paid', 'completed', etc.
          */
+        const status = data.data?.status || data.status || data.payload?.status || data.pix?.status || "pending";
+        console.log(`[GouPay Status Check] Status identificado: ${status}`);
+
         return {
-            status: data.data?.status || data.status || "pending",
+            status: status,
             raw: data
         };
     } catch (error) {
