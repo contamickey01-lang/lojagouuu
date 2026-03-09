@@ -5,10 +5,18 @@ function getSupabaseAdmin() {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    if (url && serviceKey) {
-        return createClient(url, serviceKey);
+    if (!url || !serviceKey) {
+        console.error("[Webhook GouPay] Erro: Variáveis de ambiente do Supabase ausentes!");
+        return null;
     }
-    return null;
+    return createClient(url, serviceKey);
+}
+
+export async function GET() {
+    return NextResponse.json({
+        status: "active",
+        message: "GouPay Webhook endpoint is online. Use POST to send payloads."
+    });
 }
 
 /**
@@ -18,13 +26,13 @@ export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
 
-        console.log("[Webhook GouPay] Recebido:", JSON.stringify(body, null, 2));
+        console.log("[Webhook GouPay] Payload Bruto:", JSON.stringify(body, null, 2));
 
         // GouPay official format: body.event and body.data.ID
-        const event = body.event;
-        // The documentation shows "ID" inside "data"
-        const txid = body.data?.ID || body.ID || body.transaction_id || body.id;
-        const status = body.data?.status || body.status;
+        // We also check for common alternatives if the payload is flat
+        const event = body.event || body.type;
+        const txid = body.data?.ID || body.ID || body.data?.id || body.transaction_id || body.id || body.payload?.id;
+        const status = body.data?.status || body.status || body.payload?.status;
 
         console.log(`[Webhook GouPay] Evento: ${event}, txid identificado: ${txid}, status: ${status}`);
 
