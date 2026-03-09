@@ -89,12 +89,12 @@ export function PixPayment({ paymentId, qrCode, qrCodeBase64, onSuccess }: PixPa
                 <>
                     {/* QR Code */}
                     <div className="relative p-4 bg-white rounded-xl shadow-lg">
-                        <div className="relative w-48 h-48">
-                            <Image
-                                src={qrCodeBase64.startsWith('data:') ? qrCodeBase64 : `data:image/png;base64,${qrCodeBase64}`}
+                        <div className="relative w-48 h-48 flex items-center justify-center">
+                            {/* Using standard img instead of Next.js Image to allow external QR Code URLs without remotePatterns config */}
+                            <img
+                                src={qrCodeBase64.startsWith('http') || qrCodeBase64.startsWith('data:') ? qrCodeBase64 : `data:image/png;base64,${qrCodeBase64}`}
                                 alt="QR Code PIX"
-                                fill
-                                className="object-contain"
+                                className="max-w-full max-h-full object-contain"
                             />
                         </div>
                     </div>
