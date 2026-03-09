@@ -20,16 +20,21 @@ export async function POST(request: NextRequest) {
 
         console.log("[Webhook GouPay] Recebido:", JSON.stringify(body, null, 2));
 
-        // Assuming GouPay sends something like { status: 'paid', transaction_id: '...' }
-        // We need to adapt this when we have the exact payload format
-        const txid = body.transaction_id || body.id;
-        const status = body.status; // 'paid', 'completed', etc.
+        // GouPay can send payload in different formats
+        const txid = body.transaction_id || body.id || body.pix?.id || body.pdu?.id || body.txid;
+        const status = body.status || body.pix?.status || body.pdu?.status;
+
+        console.log(`[Webhook GouPay] txid identificado: ${txid}, status: ${status}`);
 
         if (!txid) {
-            return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+            console.error("[Webhook GouPay] Payload sem ID de transação:", body);
+            return NextResponse.json({ error: "Invalid payload: no transaction id" }, { status: 400 });
         }
 
-        if (status === 'paid' || status === 'completed' || status === 'success') {
+        // status can be 'paid', 'completed', 'success' or even 'approved'
+        const isPaid = ['paid', 'completed', 'success', 'approved', 'pago', 'concluido'].includes(String(status).toLowerCase());
+
+        if (isPaid) {
             const supabase = getSupabaseAdmin();
             if (!supabase) {
                 return NextResponse.json({ error: "Server error" }, { status: 500 });
