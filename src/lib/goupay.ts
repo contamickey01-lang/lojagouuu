@@ -44,19 +44,20 @@ export async function createGouPayPixOrder(amount: number, payer: PayerData, des
         }
 
         /**
-         * Response format based on user image:
-         * {
-         *   status: "success",
-         *   pix_qr_code: "00020126...", // Pix Copia e Cola
-         *   ...
-         * }
+         * Response format can vary:
+         * data.pix.qr_code
+         * data.pdu.qr_code
          */
 
-        // If there's no base64, we'll return a URL to generate a QR code from the text
-        const qrCodeText = data.pix_qr_code || data.pdu_qr_code; // Adjust based on actual API response field
+        const qrCodeText = data.pix?.qr_code || data.pdu?.qr_code || data.pix_qr_code || data.pdu_qr_code;
+
+        if (!qrCodeText) {
+            console.error("[GouPay API] Resposta sem QR Code:", data);
+            throw new Error("Resposta da API GouPay não contém código Pix");
+        }
 
         return {
-            id: data.transaction_id || data.id || `gou_${Date.now()}`, // Fallback if no ID is returned
+            id: data.transaction_id || data.id || data.pix?.id || data.pdu?.id || `gou_${Date.now()}`,
             status: "pending",
             qr_code: qrCodeText,
             // Generate a QR code image using a public API
