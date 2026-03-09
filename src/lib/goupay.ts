@@ -58,8 +58,27 @@ export async function createGouPayPixOrder(amount: number, payer: PayerData, des
             throw new Error("Resposta da API GouPay não contém código Pix");
         }
 
+        // Logs detalhados para debugar qual ID é o correto
+        console.log("[GouPay API] Campos de ID disponíveis na resposta:", {
+            "data.data.ID": data.data?.ID,
+            "data.ID": data.ID,
+            "data.transaction_id": data.transaction_id,
+            "data.data.transaction_id": data.data?.transaction_id,
+            "data.id": data.id,
+            "data.data.id": data.data?.id,
+            "data.pix.id": data.pix?.id,
+            "data.pdu.id": data.pdu?.id
+        });
+
         // The ID should be consistent with what the webhook sends (data.ID in docs)
-        const transitionId = data.data?.ID || data.ID || data.transaction_id || data.id || data.pix?.id || data.pdu?.id;
+        const transitionId = data.data?.ID ||
+            data.ID ||
+            data.transaction_id ||
+            data.data?.transaction_id ||
+            data.id ||
+            data.data?.id ||
+            data.pix?.id ||
+            data.pdu?.id;
 
         console.log(`[GouPay API] ID de transação identificado para salvar: ${transitionId}`);
 
