@@ -91,9 +91,9 @@ export async function checkGouPayOrderStatus(id: string) {
 
         const text = await response.text();
 
-        // Se a resposta começar com < ou <!DOCTYPE, é um HTML (provável erro 404 da GouPay)
+        // Se a resposta começar com <, ainda é HTML (erro no gateway)
         if (text.trim().startsWith('<')) {
-            console.error(`[GouPay Status Check] Recebeu HTML em vez de JSON. O endpoint /pix/${id} pode estar incorreto ou não existir.`);
+            console.error(`[GouPay Status Check] Recebeu HTML. O gateway ainda pode estar com erro no endpoint /api/v1/pix/${id}`);
             return null;
         }
 
@@ -101,7 +101,7 @@ export async function checkGouPayOrderStatus(id: string) {
         try {
             data = JSON.parse(text);
         } catch (e) {
-            console.error("[GouPay Status Check] Erro ao parsear JSON:", text.substring(0, 100));
+            console.error("[GouPay Status Check] Resposta inválida (não JSON):", text.substring(0, 100));
             return null;
         }
 
@@ -110,11 +110,12 @@ export async function checkGouPayOrderStatus(id: string) {
             return null;
         }
 
-        const status = data.data?.status || data.status || data.payload?.status || data.pix?.status || "pending";
-        console.log(`[GouPay Status Check] Status identificado: ${status}`);
+        // De acordo com o dono da GouPay: status pode ser "paid", "pending", etc.
+        const status = data.status || data.data?.status || "pending";
+        console.log(`[GouPay Status Check] Status da transação: ${status}`);
 
         return {
-            status: status,
+            status: String(status).toLowerCase(),
             raw: data
         };
     } catch (error) {
