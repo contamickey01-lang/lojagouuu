@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
         const { data, error } = await supabase
             .from("orders")
             .select("status, payment_status")
-            .eq("payment_id", paymentId)
+            .eq("payment_id", String(paymentId))
             .single();
 
         if (error || !data) {
