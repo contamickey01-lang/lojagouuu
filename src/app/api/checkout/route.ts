@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createPixOrder } from "@/lib/efi";
+import { createGouPayPixOrder } from "@/lib/goupay";
 import { createClient } from "@supabase/supabase-js";
 
 // Supabase Admin client for server-side order creation
@@ -47,21 +47,24 @@ export async function POST(request: NextRequest) {
         // Calcular total
         const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-        // 1. Criar pedido no Efí Bank
+        // 1. Criar pedido no GouPay
         let result: any;
 
         if (paymentMethod === "pix") {
-            result = await createPixOrder(total, { name: payerName, cpf: payerCpf });
+            result = await createGouPayPixOrder(
+                total,
+                { name: payerName, cpf: payerCpf, email: userEmail },
+                "Compra na Loja Gou"
+            );
         } else if (paymentMethod === "credit_card") {
             // TODO: Implementar fluxo de cartão de crédito
-            // Para cartão, precisamos do token gerado pelo SDK do Efí no frontend
             return NextResponse.json({ error: "Pagamento por cartão em fase de implementação" }, { status: 400 });
         } else {
             return NextResponse.json({ error: "Método de pagamento inválido" }, { status: 400 });
         }
 
-        if (!result.id) {
-            throw new Error("Falha ao criar pagamento no Efí Bank");
+        if (!result.qr_code) {
+            throw new Error("Falha ao criar pagamento no GouPay");
         }
 
         // 2. Criar pedido 'pendente' no Supabase para rastreio

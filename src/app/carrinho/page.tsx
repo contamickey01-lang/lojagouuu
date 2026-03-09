@@ -25,7 +25,7 @@ export default function CartPage() {
 
     // Estado do PIX gerado
     const [pixData, setPixData] = useState<{
-        id: string; // Mudado para string para o TXID do Efí
+        id: string; // ID da transação no GouPay
         qr_code: string;
         qr_code_base64: string;
     } | null>(null);
@@ -385,7 +385,7 @@ export default function CartPage() {
 
                                         <p className="text-[10px] text-muted-foreground text-center mt-4 leading-tight">
                                             Ao clicar, você concorda com os termos de compra.
-                                            Seus dados são processados com segurança pelo Efí Bank.
+                                            Seus dados são processados com segurança pelo GouPay.
                                         </p>
                                     </div>
                                 </div>
